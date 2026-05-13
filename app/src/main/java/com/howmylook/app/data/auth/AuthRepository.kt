@@ -34,19 +34,7 @@ class AuthRepository {
                 this.password = password
             }
 
-            val userId = result?.id
-            if (userId != null) {
-                val fallbackUsername = "user_${userId.take(8)}"
-                client.from("profiles").upsert(
-                    ProfileUpsertDto(
-                        id = userId,
-                        username = fallbackUsername,
-                        displayName = null,
-                    )
-                )
-            }
-
-            if (userId == null) {
+            if (result?.id == null) {
                 "Check your email. Confirm signup, then come back and sign in."
             } else {
                 "Account created."
@@ -68,13 +56,20 @@ class AuthRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val user = client.auth.retrieveUserForCurrentSession(updateSession = true)
-            client.from("profiles")
+            val existing = client.from("profiles")
                 .select(columns = Columns.list("id", "username", "display_name", "login_rating_votes_completed")) {
                     filter { eq("id", user.id) }
                     limit(1)
                 }
                 .decodeSingleOrNull<ProfileDto>()
                 ?.toRecord()
+
+            existing ?: ProfileRecord(
+                id = user.id,
+                username = null,
+                displayName = null,
+                loginRatingVotesCompleted = 0,
+            )
         }
     }
 

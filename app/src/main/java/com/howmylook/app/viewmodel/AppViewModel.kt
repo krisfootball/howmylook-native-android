@@ -137,7 +137,11 @@ class AppViewModel : ViewModel() {
             bootstrapMessage = bootstrap.message
             currentUserId = bootstrap.profile?.id
             usernameFormState = usernameFormState.copy(
-                username = bootstrap.profile?.username.orEmpty(),
+                username = if (com.howmylook.app.domain.hasCompletedUsername(bootstrap.profile?.id, bootstrap.profile?.username)) {
+                    bootstrap.profile?.username.orEmpty()
+                } else {
+                    ""
+                },
                 displayName = bootstrap.profile?.displayName.orEmpty(),
                 loading = false,
                 error = null,
@@ -164,10 +168,12 @@ class AppViewModel : ViewModel() {
                 statusMessage = bootstrap.message,
             )
 
-            if (bootstrap.isSignedIn && bootstrap.step != AppStep.USERNAME) {
-                loadProfile()
-                loadSearch()
-                loadRatingQueue()
+            if (bootstrap.isSignedIn) {
+                if (bootstrap.step != AppStep.USERNAME) {
+                    loadProfile()
+                    loadSearch()
+                    loadRatingQueue()
+                }
             }
         }
     }
