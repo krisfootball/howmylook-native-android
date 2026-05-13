@@ -1,7 +1,6 @@
 package com.howmylook.app.viewmodel
 
 import android.content.ContentResolver
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -116,8 +115,6 @@ class AppViewModel : ViewModel() {
 
     var bootstrapMessage by mutableStateOf("Bootstrapping…")
         private set
-
-    val currentRoute = derivedStateOf { resolveStartRoute() }
 
     init {
         bootstrapSession()

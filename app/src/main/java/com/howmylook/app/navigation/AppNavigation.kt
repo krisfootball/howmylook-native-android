@@ -5,7 +5,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,7 +25,6 @@ fun AppNavigation(viewModel: AppViewModel) {
     val navController = rememberNavController()
     val startDestination = viewModel.resolveStartRoute().name
     val context = LocalContext.current
-    val currentRoute by viewModel.currentRoute
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -41,8 +39,12 @@ fun AppNavigation(viewModel: AppViewModel) {
         }
     }
 
-    LaunchedEffect(currentRoute) {
-        val routeName = currentRoute.name
+    LaunchedEffect(
+        viewModel.sessionState.isLoading,
+        viewModel.sessionState.isSignedIn,
+        viewModel.sessionState.needsUsername,
+    ) {
+        val routeName = viewModel.resolveStartRoute().name
         if (navController.currentDestination?.route != routeName) {
             navController.navigate(routeName) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
