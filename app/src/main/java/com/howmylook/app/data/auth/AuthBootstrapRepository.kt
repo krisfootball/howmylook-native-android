@@ -35,6 +35,9 @@ class AuthBootstrapRepository(
 
         val profile = authRepository.loadCurrentProfile(config).getOrNull()
         val userId = profile?.id
+        if (userId != null) {
+            authRepository.resetLoginRatingCounter(config, userId)
+        }
         val availablePostCount = if (userId != null) {
             authRepository.getAvailableRatingPostCount(config, userId).getOrDefault(0)
         } else {

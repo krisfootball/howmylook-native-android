@@ -216,37 +216,6 @@ class AppViewModel : ViewModel() {
 
             result
                 .onSuccess { message ->
-                    if (authFormState.mode == AuthMode.SIGN_IN) {
-                        val profileResult = authRepository.loadCurrentProfile(supabaseConfig)
-                        val profile = profileResult.getOrElse { error ->
-                            authFormState = authFormState.copy(
-                                loading = false,
-                                error = error.message ?: "Signed in, but the user session could not be loaded.",
-                            )
-                            return@onSuccess
-                        }
-
-                        val userId = profile?.id
-                        if (userId == null) {
-                            authFormState = authFormState.copy(
-                                loading = false,
-                                error = "Signed in, but the user session could not be loaded.",
-                            )
-                            return@onSuccess
-                        }
-
-                        val resetResult = authRepository.resetLoginRatingCounter(supabaseConfig, userId)
-                        if (resetResult.isFailure) {
-                            authFormState = authFormState.copy(
-                                loading = false,
-                                error = resetResult.exceptionOrNull()?.message ?: "Unable to reset login rating progress.",
-                            )
-                            return@onSuccess
-                        }
-
-                        currentUserId = userId
-                    }
-
                     authFormState = authFormState.copy(loading = false, message = message, error = null)
                     if (authFormState.mode == AuthMode.SIGN_UP && message.contains("Check your email")) {
                         setAuthMode(AuthMode.SIGN_IN)

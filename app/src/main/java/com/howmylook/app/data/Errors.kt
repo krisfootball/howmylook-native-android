@@ -5,6 +5,7 @@ fun toFriendlyAuthError(message: String?): String {
     return when {
         lower.contains("invalid login credentials") -> "Invalid email or password."
         lower.contains("email not confirmed") || lower.contains("confirm") -> "Check your email and confirm your account, then sign in."
+        lower.contains("no session") -> "Signed in, but no session was available yet. Try again once, or reopen the app."
         lower.contains("row-level security") && lower.contains("profiles") -> "Account auth worked, but the profiles table is rejecting the profile write. The signup flow or Supabase RLS needs alignment."
         lower.contains("network") || lower.contains("timeout") || lower.contains("host") -> "Network issue while contacting Supabase. Try again."
         lower.isBlank() -> "Authentication failed."
