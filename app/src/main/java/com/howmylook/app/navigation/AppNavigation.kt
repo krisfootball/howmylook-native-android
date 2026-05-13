@@ -5,13 +5,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.howmylook.app.ui.screens.AuthScreen
-import com.howmylook.app.ui.screens.HomeScreen
 import com.howmylook.app.ui.screens.FollowListScreen
+import com.howmylook.app.ui.screens.HomeScreen
 import com.howmylook.app.ui.screens.PostDetailScreen
 import com.howmylook.app.ui.screens.ProfileScreen
 import com.howmylook.app.ui.screens.SearchScreen
@@ -25,6 +26,7 @@ fun AppNavigation(viewModel: AppViewModel) {
     val navController = rememberNavController()
     val startDestination = viewModel.resolveStartRoute().name
     val context = LocalContext.current
+    val currentRoute by viewModel.currentRoute
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -36,6 +38,16 @@ fun AppNavigation(viewModel: AppViewModel) {
     LaunchedEffect(viewModel.uploadUiState.pickerLaunchNonce) {
         if (viewModel.uploadUiState.pickerLaunchNonce > 0) {
             photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    }
+
+    LaunchedEffect(currentRoute) {
+        val routeName = currentRoute.name
+        if (navController.currentDestination?.route != routeName) {
+            navController.navigate(routeName) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 

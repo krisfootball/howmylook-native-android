@@ -117,6 +117,8 @@ class AppViewModel : ViewModel() {
     var bootstrapMessage by mutableStateOf("Bootstrapping…")
         private set
 
+    val currentRoute = derivedStateOf { resolveStartRoute() }
+
     init {
         bootstrapSession()
     }
