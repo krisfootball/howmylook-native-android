@@ -203,7 +203,6 @@ class AppViewModel : ViewModel() {
 
             val result = if (authFormState.mode == AuthMode.SIGN_UP) {
                 authRepository.signUp(supabaseConfig, email, password)
-                    .map { "Account created. Sign in next if email confirmation is required." }
             } else {
                 authRepository.signIn(supabaseConfig, email, password)
                     .map { "Signed in." }
@@ -243,12 +242,16 @@ class AppViewModel : ViewModel() {
                     }
 
                     authFormState = authFormState.copy(loading = false, message = message, error = null)
-                    bootstrapSession()
+                    if (authFormState.mode == AuthMode.SIGN_UP && message.contains("Check your email")) {
+                        setAuthMode(AuthMode.SIGN_IN)
+                    } else {
+                        bootstrapSession()
+                    }
                 }
                 .onFailure { error ->
                     authFormState = authFormState.copy(
                         loading = false,
-                        error = error.message ?: "Authentication failed.",
+                        error = com.howmylook.app.data.toFriendlyAuthError(error.message),
                     )
                 }
         }

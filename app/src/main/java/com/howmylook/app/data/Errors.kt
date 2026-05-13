@@ -1,5 +1,17 @@
 package com.howmylook.app.data
 
+fun toFriendlyAuthError(message: String?): String {
+    val lower = message?.lowercase().orEmpty()
+    return when {
+        lower.contains("invalid login credentials") -> "Invalid email or password."
+        lower.contains("email not confirmed") || lower.contains("confirm") -> "Check your email and confirm your account, then sign in."
+        lower.contains("row-level security") && lower.contains("profiles") -> "Account auth worked, but the profiles table is rejecting the profile write. The signup flow or Supabase RLS needs alignment."
+        lower.contains("network") || lower.contains("timeout") || lower.contains("host") -> "Network issue while contacting Supabase. Try again."
+        lower.isBlank() -> "Authentication failed."
+        else -> message!!
+    }
+}
+
 fun toFriendlyUploadError(message: String?): String {
     val lower = message?.lowercase().orEmpty()
     return when {

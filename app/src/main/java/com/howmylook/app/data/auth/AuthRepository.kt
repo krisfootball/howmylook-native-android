@@ -34,18 +34,23 @@ class AuthRepository {
                 this.password = password
             }
 
-            val userId = result?.id ?: error("Account created, but no user id came back from Supabase.")
-            val fallbackUsername = "user_${userId.take(8)}"
-
-            client.from("profiles").upsert(
-                ProfileUpsertDto(
-                    id = userId,
-                    username = fallbackUsername,
-                    displayName = null,
+            val userId = result?.id
+            if (userId != null) {
+                val fallbackUsername = "user_${userId.take(8)}"
+                client.from("profiles").upsert(
+                    ProfileUpsertDto(
+                        id = userId,
+                        username = fallbackUsername,
+                        displayName = null,
+                    )
                 )
-            )
+            }
 
-            userId
+            if (userId == null) {
+                "Check your email. Confirm signup, then come back and sign in."
+            } else {
+                "Account created."
+            }
         }
     }
 
