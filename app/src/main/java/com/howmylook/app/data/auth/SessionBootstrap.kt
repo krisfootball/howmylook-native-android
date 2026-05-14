@@ -9,4 +9,5 @@ data class SessionBootstrap(
     val profile: ProfileRecord? = null,
     val availablePostCount: Int = 0,
     val message: String = "",
+    val debugMessage: String? = null,
 )

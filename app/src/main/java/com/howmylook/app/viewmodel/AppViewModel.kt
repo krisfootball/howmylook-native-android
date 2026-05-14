@@ -161,6 +161,7 @@ class AppViewModel : ViewModel() {
                 unlockVotesCompleted = bootstrap.profile?.loginRatingVotesCompleted ?: 0,
                 availablePostCount = bootstrap.availablePostCount,
                 bootstrapMessage = bootstrap.message,
+                debugMessage = bootstrap.debugMessage,
             )
 
             homeUiState = homeUiState.copy(
@@ -206,6 +207,11 @@ class AppViewModel : ViewModel() {
 
         viewModelScope.launch {
             authFormState = authFormState.copy(loading = true, error = null, message = "")
+            bootstrapMessage = if (authFormState.mode == AuthMode.SIGN_IN) {
+                "Signing in…"
+            } else {
+                "Creating account…"
+            }
 
             val result = if (authFormState.mode == AuthMode.SIGN_UP) {
                 authRepository.signUp(supabaseConfig, email, password)
@@ -217,6 +223,7 @@ class AppViewModel : ViewModel() {
             result
                 .onSuccess { message ->
                     authFormState = authFormState.copy(loading = false, message = message, error = null)
+                    bootstrapMessage = message
                     if (authFormState.mode == AuthMode.SIGN_UP && message.contains("Check your email")) {
                         setAuthMode(AuthMode.SIGN_IN)
                     } else {

@@ -49,6 +49,7 @@ fun SplashScreen() {
 fun AuthScreen(
     state: AuthFormState,
     bootstrapMessage: String,
+    debugMessage: String?,
     onModeChange: (AuthMode) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -117,6 +118,15 @@ fun AuthScreen(
 
         state.error?.let {
             Text(it, modifier = Modifier.padding(top = 12.dp), color = Color(0xFFB91C1C))
+        }
+
+        if (!debugMessage.isNullOrBlank()) {
+            Text(
+                text = debugMessage,
+                modifier = Modifier.padding(top = 12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+            )
         }
     }
 }

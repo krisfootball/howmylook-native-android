@@ -8,4 +8,5 @@ data class SessionState(
     val unlockVotesCompleted: Int = 0,
     val availablePostCount: Int = 0,
     val bootstrapMessage: String = "",
+    val debugMessage: String? = null,
 )

@@ -59,6 +59,7 @@ fun AppNavigation(viewModel: AppViewModel) {
             AuthScreen(
                 state = viewModel.authFormState,
                 bootstrapMessage = viewModel.bootstrapMessage,
+                debugMessage = viewModel.sessionState.debugMessage,
                 onModeChange = viewModel::setAuthMode,
                 onEmailChange = viewModel::updateEmail,
                 onPasswordChange = viewModel::updatePassword,
