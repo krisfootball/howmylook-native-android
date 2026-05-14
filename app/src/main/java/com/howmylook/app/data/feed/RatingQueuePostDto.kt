@@ -11,6 +11,7 @@ data class RatingQueuePostDto(
     @SerialName("caption") val caption: String? = null,
     @SerialName("yes_count") val yesCount: Int = 0,
     @SerialName("no_count") val noCount: Int = 0,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 fun RatingQueuePostDto.toCard(index: Int): RatingCard {

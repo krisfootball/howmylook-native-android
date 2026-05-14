@@ -24,6 +24,7 @@ private data class SearchLookDto(
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("yes_count") val yesCount: Int = 0,
     @SerialName("no_count") val noCount: Int = 0,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable
