@@ -2,7 +2,9 @@ package com.howmylook.app.data.feed
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
+@JsonIgnoreUnknownKeys
 @Serializable
 data class VoteResultDto(
     @SerialName("postId") val postId: String? = null,
