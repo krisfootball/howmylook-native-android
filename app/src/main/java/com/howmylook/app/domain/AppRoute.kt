@@ -8,4 +8,6 @@ enum class AppRoute {
     Search,
     Upload,
     Profile,
+    PostDetail,
+    FollowList,
 }

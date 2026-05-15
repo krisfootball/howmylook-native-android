@@ -52,7 +52,6 @@ import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 
-private val PinkBorder = Color(0xFFF6DCE8)
 private val PinkSurface = Color(0xFFFFF5FA)
 private val SoftText = Color(0xFF64748B)
 private val SuccessText = Color(0xFF166534)
@@ -342,155 +341,161 @@ fun HomeScreen(
     homeUiState: HomeUiState,
     onVoteYes: () -> Unit,
     onVoteNo: () -> Unit,
-    onOpenSearch: () -> Unit,
-    onOpenUpload: () -> Unit,
-    onOpenProfile: () -> Unit,
     onOpenPost: (String) -> Unit,
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
-                )
-            )
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .background(Color.Black),
     ) {
-        if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(shape = RoundedCornerShape(999.dp), color = Color(0xCC000000)) {
+        if (card == null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                        )
+                    )
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
+                    LockBanner()
+                }
+                Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("No more looks are ready to rate right now.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(homeUiState.statusMessage, color = SoftText)
+                    }
+                }
+                if (homeUiState.isLoading) {
+                    Text("Loading rating queue...", style = MaterialTheme.typography.bodySmall, color = SoftText)
+                }
+                if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
                     Text(
-                        "Rate 5 photos to access account",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available right now, so unlock may complete early.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SoftText,
                     )
                 }
             }
+            return
         }
 
-        if (card == null) {
-            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("No more looks are ready to rate right now.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(homeUiState.statusMessage, color = SoftText)
-                }
-            }
+        if (!card.imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = card.imageUrl,
+                contentDescription = card.occasion,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
-            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (!card.imageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = card.imageUrl,
-                            contentDescription = card.occasion,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(460.dp)
-                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF)),
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(460.dp)
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF)),
-                                    )
-                                )
-                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("Photo placeholder", color = SoftText)
-                        }
-                    }
-
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(card.authorName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(card.occasion, color = MaterialTheme.colorScheme.onSurface)
-                        Text("Yes ${card.yesCount} · No ${card.noCount}", color = SoftText)
-                        if (homeUiState.destination == HomeDestination.LOCKED_HOME && card.needsMoreRatings > 0) {
-                            Text("This look still needs ${card.needsMoreRatings} more ratings.", style = MaterialTheme.typography.bodySmall, color = SoftText)
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = onVoteNo,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
-                                shape = RoundedCornerShape(999.dp),
-                            ) { Text(AppConfig.noLabel) }
-                            Button(
-                                onClick = onVoteYes,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
-                                shape = RoundedCornerShape(999.dp),
-                            ) { Text(AppConfig.yesLabel) }
-                        }
-                        Button(
-                            onClick = { onOpenPost(card.id) },
-                            shape = RoundedCornerShape(999.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
-                        ) {
-                            Text("Open")
-                        }
-                    }
-                }
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("Photo placeholder", color = Color.White)
             }
         }
 
-        if (homeUiState.isLoading) {
-            Text("Loading rating queue...", style = MaterialTheme.typography.bodySmall, color = SoftText)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x66000000), Color.Transparent, Color(0xBF000000)),
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
+                    LockBanner()
+                }
+                if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
+                    Surface(shape = RoundedCornerShape(18.dp), color = Color.Black.copy(alpha = 0.38f)) {
+                        Text(
+                            "Only ${sessionState.availablePostCount} rateable posts are available right now.",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            color = Color.White.copy(alpha = 0.9f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(card.authorName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
+                Text("Yes ${card.yesCount} · No ${card.noCount}", color = Color.White.copy(alpha = 0.78f))
+                if (homeUiState.destination == HomeDestination.LOCKED_HOME && card.needsMoreRatings > 0) {
+                    Text(
+                        "This look still needs ${card.needsMoreRatings} more ratings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.82f),
+                    )
+                }
+                if (homeUiState.statusMessage.isNotBlank()) {
+                    Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.74f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = onVoteNo,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White),
+                        shape = RoundedCornerShape(999.dp),
+                    ) { Text(AppConfig.noLabel) }
+                    Button(
+                        onClick = onVoteYes,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                        shape = RoundedCornerShape(999.dp),
+                    ) { Text(AppConfig.yesLabel) }
+                }
+                Button(
+                    onClick = { onOpenPost(card.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEEF6), contentColor = Color.Black),
+                ) {
+                    Text("Open full post")
+                }
+            }
         }
-        if (homeUiState.statusMessage.isNotBlank()) {
-            Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = SoftText)
-        }
-        if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
+    }
+}
+
+@Composable
+private fun LockBanner() {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Surface(shape = RoundedCornerShape(999.dp), color = Color(0xCC000000)) {
             Text(
-                "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available right now, so unlock may complete early.",
-                style = MaterialTheme.typography.bodySmall,
-                color = SoftText,
+                "Rate 5 photos to access account",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
             )
         }
-
-        BottomShortcutRow(onOpenSearch = onOpenSearch, onOpenUpload = onOpenUpload, onOpenProfile = onOpenProfile)
     }
 }
 
 @Composable
-private fun BottomShortcutRow(
-    onOpenSearch: () -> Unit,
-    onOpenUpload: () -> Unit,
-    onOpenProfile: () -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        SmallNavButton(label = "Home", active = true, onClick = {})
-        SmallNavButton(label = "Search", onClick = onOpenSearch)
-        SmallNavButton(label = "Post", onClick = onOpenUpload)
-        SmallNavButton(label = "Profile", onClick = onOpenProfile)
-    }
-}
-
-@Composable
-private fun SmallNavButton(label: String, active: Boolean = false, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = if (active) Color(0xFFFFEEF6) else Color.White,
-        shadowElevation = 1.dp,
-    ) {
-        Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
-            Text(label, color = if (active) AccentPink else SoftText, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-fun SearchScreen(state: SearchUiState, onBack: () -> Unit, onOpenPerson: (String) -> Unit, onOpenPost: (String) -> Unit) {
+fun SearchScreen(state: SearchUiState, onOpenPerson: (String) -> Unit, onOpenPost: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -503,7 +508,6 @@ fun SearchScreen(state: SearchUiState, onBack: () -> Unit, onOpenPerson: (String
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
         Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
             Row(
                 modifier = Modifier
@@ -623,7 +627,6 @@ fun SearchScreen(state: SearchUiState, onBack: () -> Unit, onOpenPerson: (String
 @Composable
 fun UploadScreen(
     state: UploadUiState,
-    onBack: () -> Unit,
     onOccasionChange: (String) -> Unit,
     onPickPhotos: () -> Unit,
     onSubmit: () -> Unit,
@@ -640,8 +643,6 @@ fun UploadScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
-
         Surface(shape = RoundedCornerShape(28.dp), color = Color(0xFFFFF6FA), shadowElevation = 2.dp) {
             Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
@@ -806,37 +807,57 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 
 @Composable
 fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .background(Color.Black),
     ) {
-        Button(
-            onClick = onBack,
-            shape = RoundedCornerShape(999.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f), contentColor = Color.White),
-        ) { Text("Back") }
-        if (state.loading) {
-            Text("Loading post...", color = Color.White.copy(alpha = 0.8f))
-        }
-        state.error?.let { Text(it, color = Color(0xFFFDA4AF)) }
         if (state.imageUrls.isNotEmpty()) {
             AsyncImage(
                 model = state.imageUrls.first(),
                 contentDescription = state.occasion,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(480.dp)
-                    .clip(RoundedCornerShape(26.dp)),
+                modifier = Modifier.fillMaxSize(),
             )
         }
-        Text(state.authorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-        Text(state.occasion, color = Color.White.copy(alpha = 0.9f))
-        Text("Yes ${state.yesCount} · No ${state.noCount}", color = Color.White.copy(alpha = 0.72f))
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0x73000000), Color.Transparent, Color(0xD9000000)),
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = onBack,
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f), contentColor = Color.White),
+                ) { Text("Back") }
+                if (state.loading) {
+                    Text("Loading post...", color = Color.White.copy(alpha = 0.8f))
+                }
+                state.error?.let { Text(it, color = Color(0xFFFDA4AF)) }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(state.authorName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(state.occasion, color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.titleMedium)
+                Text("Yes ${state.yesCount} · No ${state.noCount}", color = Color.White.copy(alpha = 0.72f))
+                if (state.imageUrls.size > 1) {
+                    Text("${state.imageUrls.size} photos", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
     }
 }
 
