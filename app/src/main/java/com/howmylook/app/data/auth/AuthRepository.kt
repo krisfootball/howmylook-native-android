@@ -52,6 +52,13 @@ class AuthRepository {
         }
     }
 
+    suspend fun signOut(config: SupabaseConfig): Result<Unit> {
+        return runCatching {
+            val client = SupabaseProvider.create(config)
+            client.auth.signOut()
+        }
+    }
+
     suspend fun loadCurrentProfile(config: SupabaseConfig): Result<ProfileRecord?> {
         return runCatching {
             val client = SupabaseProvider.create(config)

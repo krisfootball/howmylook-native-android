@@ -11,4 +11,6 @@ enum class AppRoute {
     Profile,
     PostDetail,
     FollowList,
+    VoteHistory,
+    EditProfile,
 }

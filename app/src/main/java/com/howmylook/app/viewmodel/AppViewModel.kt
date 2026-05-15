@@ -20,10 +20,14 @@ import com.howmylook.app.data.feed.RatingCard
 import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
 import com.howmylook.app.data.post.PostRepository
+import com.howmylook.app.data.profile.EditProfileFormState
+import com.howmylook.app.data.profile.EditProfileRepository
 import com.howmylook.app.data.profile.FollowListRepository
 import com.howmylook.app.data.profile.PeopleRepository
 import com.howmylook.app.data.profile.ProfileRepository
 import com.howmylook.app.data.profile.ProfileUiState
+import com.howmylook.app.data.profile.VoteHistoryRepository
+import com.howmylook.app.data.profile.VoteHistoryUiState
 import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.ExploreProfileCard
 import com.howmylook.app.data.search.SearchRepository
@@ -42,6 +46,8 @@ class AppViewModel : ViewModel() {
     private val profileRepository = ProfileRepository()
     private val peopleRepository = PeopleRepository()
     private val followListRepository = FollowListRepository()
+    private val voteHistoryRepository = VoteHistoryRepository()
+    private val editProfileRepository = EditProfileRepository()
     private val postRepository = PostRepository()
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
@@ -106,6 +112,12 @@ class AppViewModel : ViewModel() {
         private set
 
     var followListUiState by mutableStateOf(FollowListUiState())
+        private set
+
+    var voteHistoryUiState by mutableStateOf(VoteHistoryUiState())
+        private set
+
+    var editProfileFormState by mutableStateOf(EditProfileFormState())
         private set
 
     var selectedPersonProfileId by mutableStateOf<String?>(null)
@@ -254,6 +266,30 @@ class AppViewModel : ViewModel() {
 
     fun updateDisplayName(displayName: String) {
         usernameFormState = usernameFormState.copy(displayName = displayName, error = null)
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            authRepository.signOut(supabaseConfig)
+                .onSuccess {
+                    currentUserId = null
+                    selectedPersonProfileId = null
+                    ratingQueue = emptyList()
+                    currentCard = null
+                    followListUiState = FollowListUiState()
+                    voteHistoryUiState = VoteHistoryUiState()
+                    editProfileFormState = EditProfileFormState()
+                    profileUiState = ProfileUiState()
+                    searchUiState = SearchUiState()
+                    uploadUiState = UploadUiState()
+                    postDetailUiState = PostDetailUiState()
+                    authFormState = authFormState.copy(password = "", message = "", error = null, loading = false)
+                    bootstrapSession()
+                }
+                .onFailure { error ->
+                    profileUiState = profileUiState.copy(error = error.message ?: "Unable to log out.")
+                }
+        }
     }
 
     fun submitUsername() {
@@ -476,27 +512,92 @@ class AppViewModel : ViewModel() {
     }
 
     fun openYesGiven() {
-        followListUiState = FollowListUiState(
-            loading = false,
-            title = "Yes given",
-            people = emptyList(),
-            error = "Detailed Yes-given history is not wired yet in native."
-        )
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Yes given", error = null)
+            voteHistoryRepository.load(supabaseConfig, userId, "yes")
+                .onSuccess { state ->
+                    voteHistoryUiState = state
+                }
+                .onFailure { error ->
+                    voteHistoryUiState = voteHistoryUiState.copy(
+                        loading = false,
+                        title = "Yes given",
+                        error = error.message ?: "Unable to load Yes history.",
+                    )
+                }
+        }
     }
 
     fun openNoGiven() {
-        followListUiState = FollowListUiState(
-            loading = false,
-            title = "No given",
-            people = emptyList(),
-            error = "Detailed No-given history is not wired yet in native."
-        )
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "No given", error = null)
+            voteHistoryRepository.load(supabaseConfig, userId, "no")
+                .onSuccess { state ->
+                    voteHistoryUiState = state
+                }
+                .onFailure { error ->
+                    voteHistoryUiState = voteHistoryUiState.copy(
+                        loading = false,
+                        title = "No given",
+                        error = error.message ?: "Unable to load No history.",
+                    )
+                }
+        }
     }
 
     fun startEditProfile() {
-        profileUiState = profileUiState.copy(
-            error = "Profile editing entry is added, but the native edit form is the next step."
-        )
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            editProfileFormState = editProfileFormState.copy(loading = true, saving = false, error = null, message = "")
+            editProfileRepository.load(supabaseConfig, userId)
+                .onSuccess { state ->
+                    editProfileFormState = state
+                }
+                .onFailure { error ->
+                    editProfileFormState = editProfileFormState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to load profile editor.",
+                    )
+                }
+        }
+    }
+
+    fun updateEditUsername(value: String) {
+        editProfileFormState = editProfileFormState.copy(username = value, error = null, message = "")
+    }
+
+    fun updateEditDisplayName(value: String) {
+        editProfileFormState = editProfileFormState.copy(displayName = value, error = null, message = "")
+    }
+
+    fun updateEditBio(value: String) {
+        editProfileFormState = editProfileFormState.copy(bio = value, error = null, message = "")
+    }
+
+    fun submitEditProfile() {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            editProfileFormState = editProfileFormState.copy(saving = true, error = null, message = "")
+            editProfileRepository.save(
+                config = supabaseConfig,
+                userId = userId,
+                username = editProfileFormState.username,
+                displayName = editProfileFormState.displayName,
+                bio = editProfileFormState.bio,
+            )
+                .onSuccess { message ->
+                    editProfileFormState = editProfileFormState.copy(saving = false, message = message, error = null)
+                    bootstrapSession()
+                }
+                .onFailure { error ->
+                    editProfileFormState = editProfileFormState.copy(
+                        saving = false,
+                        error = error.message ?: "Unable to update profile.",
+                    )
+                }
+        }
     }
 
     fun submitUpload(contentResolver: ContentResolver) {

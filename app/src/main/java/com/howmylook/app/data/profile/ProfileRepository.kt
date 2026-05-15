@@ -4,6 +4,7 @@ import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Count
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -18,6 +19,8 @@ private data class ProfileDetailsDto(
 )
 
 class ProfileRepository {
+    private val profilePostRepository = ProfilePostRepository()
+
     suspend fun loadOwnProfile(config: SupabaseConfig, userId: String): Result<ProfileUiState> {
         return runCatching {
             val client = SupabaseProvider.create(config)
@@ -28,6 +31,22 @@ class ProfileRepository {
                 }
                 .decodeSingleOrNull<ProfileDetailsDto>()
 
+            val followersCount = client.from("follows")
+                .select(count = Count.EXACT) {
+                    filter { eq("following_id", userId) }
+                    head = true
+                }
+                .countOrNull() ?: 0
+
+            val followingCount = client.from("follows")
+                .select(count = Count.EXACT) {
+                    filter { eq("follower_id", userId) }
+                    head = true
+                }
+                .countOrNull() ?: 0
+
+            val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
+
             ProfileUiState(
                 loading = false,
                 profileId = userId,
@@ -37,8 +56,9 @@ class ProfileRepository {
                 avatarUrl = profile?.avatarUrl,
                 yesGiven = profile?.totalYesGiven ?: 0,
                 noGiven = profile?.totalNoGiven ?: 0,
-                followers = 0,
-                following = 0,
+                followers = followersCount,
+                following = followingCount,
+                posts = posts,
                 isOwnProfile = true,
                 isFollowing = false,
                 error = null,

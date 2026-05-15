@@ -33,10 +33,12 @@ import androidx.navigation.compose.rememberNavController
 import com.howmylook.app.domain.AppRoute
 import com.howmylook.app.ui.screens.ActivityScreen
 import com.howmylook.app.ui.screens.AuthScreen
+import com.howmylook.app.ui.screens.EditProfileScreen
 import com.howmylook.app.ui.screens.FollowListScreen
 import com.howmylook.app.ui.screens.HomeScreen
 import com.howmylook.app.ui.screens.PostDetailScreen
 import com.howmylook.app.ui.screens.ProfileScreen
+import com.howmylook.app.ui.screens.VoteHistoryScreen
 import com.howmylook.app.ui.screens.SearchScreen
 import com.howmylook.app.ui.screens.SplashScreen
 import com.howmylook.app.ui.screens.UploadScreen
@@ -201,13 +203,27 @@ fun AppNavigation(viewModel: AppViewModel) {
                     },
                     onOpenYesGiven = {
                         viewModel.openYesGiven()
-                        navController.navigate(AppRoute.FollowList.name)
+                        navController.navigate(AppRoute.VoteHistory.name)
                     },
                     onOpenNoGiven = {
                         viewModel.openNoGiven()
-                        navController.navigate(AppRoute.FollowList.name)
+                        navController.navigate(AppRoute.VoteHistory.name)
                     },
-                    onEditProfile = { viewModel.startEditProfile() },
+                    onEditProfile = {
+                        viewModel.startEditProfile()
+                        navController.navigate(AppRoute.EditProfile.name)
+                    },
+                    onOpenPost = { postId ->
+                        viewModel.openPostDetail(postId)
+                        navController.navigate(AppRoute.PostDetail.name)
+                    },
+                    onLogOut = {
+                        viewModel.signOut()
+                        navController.navigate(AppRoute.Auth.name) {
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(AppRoute.Activity.name) {
@@ -227,6 +243,26 @@ fun AppNavigation(viewModel: AppViewModel) {
                         viewModel.openPersonProfile(profileId)
                         navController.navigate(AppRoute.Profile.name)
                     },
+                )
+            }
+            composable(AppRoute.VoteHistory.name) {
+                VoteHistoryScreen(
+                    state = viewModel.voteHistoryUiState,
+                    onBack = { navController.popBackStack() },
+                    onOpenPost = { postId ->
+                        viewModel.openPostDetail(postId)
+                        navController.navigate(AppRoute.PostDetail.name)
+                    },
+                )
+            }
+            composable(AppRoute.EditProfile.name) {
+                EditProfileScreen(
+                    state = viewModel.editProfileFormState,
+                    onBack = { navController.popBackStack() },
+                    onUsernameChange = viewModel::updateEditUsername,
+                    onDisplayNameChange = viewModel::updateEditDisplayName,
+                    onBioChange = viewModel::updateEditBio,
+                    onSave = viewModel::submitEditProfile,
                 )
             }
         }

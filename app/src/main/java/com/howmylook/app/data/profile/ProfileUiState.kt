@@ -1,5 +1,7 @@
 package com.howmylook.app.data.profile
 
+import com.howmylook.app.data.search.ExploreLookCard
+
 data class ProfileUiState(
     val loading: Boolean = false,
     val profileId: String? = null,
@@ -11,6 +13,7 @@ data class ProfileUiState(
     val following: Int = 0,
     val yesGiven: Int = 0,
     val noGiven: Int = 0,
+    val posts: List<ExploreLookCard> = emptyList(),
     val isOwnProfile: Boolean = true,
     val isFollowing: Boolean = false,
     val error: String? = null,

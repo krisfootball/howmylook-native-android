@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,11 +24,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.howmylook.app.data.auth.AuthFormState
@@ -47,7 +57,9 @@ import com.howmylook.app.data.feed.HomeUiState
 import com.howmylook.app.data.feed.RatingCard
 import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
+import com.howmylook.app.data.profile.EditProfileFormState
 import com.howmylook.app.data.profile.ProfileUiState
+import com.howmylook.app.data.profile.VoteHistoryUiState
 import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
@@ -664,7 +676,12 @@ fun ProfileScreen(
     onOpenYesGiven: () -> Unit,
     onOpenNoGiven: () -> Unit,
     onEditProfile: () -> Unit,
+    onOpenPost: (String) -> Unit,
+    onLogOut: () -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -704,8 +721,42 @@ fun ProfileScreen(
                         ) { Text("✨") }
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                        Text(state.username, color = SoftText)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                                Text(state.username, color = SoftText)
+                            }
+                            Box {
+                                Text(
+                                    "⋯",
+                                    modifier = Modifier.clickable { menuExpanded = true }.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    color = AccentPink,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                )
+                                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                    DropdownMenuItem(text = { Text("Terms") }, onClick = {
+                                        menuExpanded = false
+                                        uriHandler.openUri("https://howmylook.com/terms")
+                                    })
+                                    DropdownMenuItem(text = { Text("Privacy") }, onClick = {
+                                        menuExpanded = false
+                                        uriHandler.openUri("https://howmylook.com/privacy")
+                                    })
+                                    DropdownMenuItem(text = { Text("Guidelines") }, onClick = {
+                                        menuExpanded = false
+                                        uriHandler.openUri("https://howmylook.com/guidelines")
+                                    })
+                                    DropdownMenuItem(text = { Text("Contact") }, onClick = {
+                                        menuExpanded = false
+                                        uriHandler.openUri("https://howmylook.com/contact")
+                                    })
+                                    DropdownMenuItem(text = { Text("Log out") }, onClick = {
+                                        menuExpanded = false
+                                        onLogOut()
+                                    })
+                                }
+                            }
+                        }
                         Text(state.bio, modifier = Modifier.padding(top = 10.dp), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
@@ -737,6 +788,73 @@ fun ProfileScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
                     ) {
                         Text(if (state.loading) "Saving..." else if (state.isFollowing) "Following" else "Follow")
+                    }
+                }
+            }
+        }
+
+        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 1.dp) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Looks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (state.posts.isEmpty()) {
+                    Text("No published looks yet.", color = SoftText)
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.height(420.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(state.posts) { post ->
+                            Surface(
+                                modifier = Modifier.clickable { onOpenPost(post.id) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = PinkSurface,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(164.dp)
+                                ) {
+                                    if (!post.imageUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = post.imageUrl,
+                                            contentDescription = post.occasion,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(Color.Transparent, Color(0xB3000000)),
+                                                )
+                                            )
+                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .padding(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Text(
+                                            post.occasion,
+                                            color = Color.White,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        Text(
+                                            "${post.yesCount} yes · ${post.noCount} no",
+                                            color = Color.White.copy(alpha = 0.86f),
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -855,6 +973,128 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
                         Text(person.bio, color = SoftText)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        BackPill(onBack)
+        Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        if (state.loading) {
+            Text("Loading ${state.title.lowercase()}...", color = SoftText)
+        }
+        state.error?.let { Text(it, color = ErrorText) }
+        if (!state.loading && state.posts.isEmpty()) {
+            Text("No posts here yet.", color = SoftText)
+        }
+        state.posts.forEach { post ->
+            Surface(
+                modifier = Modifier.clickable { onOpenPost(post.id) },
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+            ) {
+                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!post.imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = post.imageUrl,
+                            contentDescription = post.occasion,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .width(86.dp)
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                        Text(post.occasion, fontWeight = FontWeight.SemiBold)
+                        Text("${post.yesCount} yes · ${post.noCount} no", color = SoftText)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditProfileScreen(
+    state: EditProfileFormState,
+    onBack: () -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onDisplayNameChange: (String) -> Unit,
+    onBioChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        BackPill(onBack)
+        Text("Edit profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = state.username,
+                    onValueChange = onUsernameChange,
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading && !state.saving,
+                    shape = RoundedCornerShape(16.dp),
+                )
+                OutlinedTextField(
+                    value = state.displayName,
+                    onValueChange = onDisplayNameChange,
+                    label = { Text("Display name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading && !state.saving,
+                    shape = RoundedCornerShape(16.dp),
+                )
+                OutlinedTextField(
+                    value = state.bio,
+                    onValueChange = onBioChange,
+                    label = { Text("Bio") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                    enabled = !state.loading && !state.saving,
+                    shape = RoundedCornerShape(16.dp),
+                )
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading && !state.saving,
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                    shape = RoundedCornerShape(999.dp),
+                ) {
+                    Text(if (state.saving) "Saving..." else "Save profile")
+                }
+                if (state.message.isNotBlank()) {
+                    Text(state.message, color = SuccessText)
+                }
+                state.error?.let { Text(it, color = ErrorText) }
             }
         }
     }

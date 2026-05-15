@@ -26,6 +26,8 @@ private data class FollowRowDto(
 )
 
 class PeopleRepository {
+    private val profilePostRepository = ProfilePostRepository()
+
     suspend fun loadPersonProfile(
         config: SupabaseConfig,
         viewerUserId: String,
@@ -64,6 +66,8 @@ class PeopleRepository {
                 }
                 .decodeSingleOrNull<FollowRowDto>()
 
+            val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }
+
             ProfileUiState(
                 loading = false,
                 profileId = profile.id,
@@ -75,6 +79,7 @@ class PeopleRepository {
                 following = following.size,
                 yesGiven = profile.totalYesGiven ?: 0,
                 noGiven = profile.totalNoGiven ?: 0,
+                posts = posts,
                 isOwnProfile = viewerUserId == profileId,
                 isFollowing = viewerFollow != null,
                 error = null,
