@@ -55,7 +55,6 @@ class AuthBootstrapRepository(
                 debugMessage = "Bootstrap profile load returned null user id.",
             )
 
-            val resetError = authRepository.resetLoginRatingCounter(config, userId).exceptionOrNull()
             val availablePostCountResult = authRepository.getAvailableRatingPostCount(config, userId)
             val availablePostCount = availablePostCountResult.getOrElse { 0 }
 
@@ -84,10 +83,6 @@ class AuthBootstrapRepository(
                     append(userId)
                     append(", availablePostCount=")
                     append(availablePostCount)
-                    if (resetError != null) {
-                        append(", resetLoginRatingCounterFailed=")
-                        append(resetError.message ?: resetError::class.simpleName ?: "unknown")
-                    }
                     availablePostCountResult.exceptionOrNull()?.let { error ->
                         append(", availablePostCountFailed=")
                         append(error.message ?: error::class.simpleName ?: "unknown")

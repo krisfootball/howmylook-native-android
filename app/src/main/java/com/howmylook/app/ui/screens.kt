@@ -717,6 +717,9 @@ fun ProfileScreen(
     onToggleFollow: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
+    onOpenYesGiven: () -> Unit,
+    onOpenNoGiven: () -> Unit,
+    onEditProfile: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -768,8 +771,18 @@ fun ProfileScreen(
                     StatPill("Following", state.following.toString(), onOpenFollowing)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatPill("Yes given", state.yesGiven.toString(), null)
-                    StatPill("No given", state.noGiven.toString(), null)
+                    StatPill("Yes given", state.yesGiven.toString(), onOpenYesGiven)
+                    StatPill("No given", state.noGiven.toString(), onOpenNoGiven)
+                }
+
+                if (state.isOwnProfile) {
+                    Button(
+                        onClick = onEditProfile,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                    ) {
+                        Text("Edit profile")
+                    }
                 }
 
                 if (!state.isOwnProfile && state.profileId != null) {
@@ -916,5 +929,32 @@ private fun BackPill(onBack: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.onSurface),
     ) {
         Text("Back")
+    }
+}
+
+@Composable
+fun ActivityScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Activity", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Activity is coming next.", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "This placeholder keeps the bottom navigation complete while the real activity feed is wired.",
+                    color = SoftText,
+                )
+            }
+        }
     }
 }

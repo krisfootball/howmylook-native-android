@@ -7,6 +7,7 @@ enum class AppRoute {
     Home,
     Search,
     Upload,
+    Activity,
     Profile,
     PostDetail,
     FollowList,

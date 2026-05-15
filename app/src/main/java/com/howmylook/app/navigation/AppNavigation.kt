@@ -3,16 +3,14 @@ package com.howmylook.app.navigation
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddBox
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -22,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.howmylook.app.domain.AppRoute
+import com.howmylook.app.ui.screens.ActivityScreen
 import com.howmylook.app.ui.screens.AuthScreen
 import com.howmylook.app.ui.screens.FollowListScreen
 import com.howmylook.app.ui.screens.HomeScreen
@@ -63,6 +61,7 @@ fun AppNavigation(viewModel: AppViewModel) {
         BottomNavItem(AppRoute.Home, "Home") { Icon(Icons.Outlined.Home, contentDescription = "Home") },
         BottomNavItem(AppRoute.Search, "Search") { Icon(Icons.Outlined.Search, contentDescription = "Search") },
         BottomNavItem(AppRoute.Upload, "Post") { Icon(Icons.Outlined.AddBox, contentDescription = "Post") },
+        BottomNavItem(AppRoute.Activity, "Activity") { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Activity") },
         BottomNavItem(AppRoute.Profile, "Profile") { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
     )
 
@@ -208,7 +207,19 @@ fun AppNavigation(viewModel: AppViewModel) {
                         viewModel.openFollowing()
                         navController.navigate(AppRoute.FollowList.name)
                     },
+                    onOpenYesGiven = {
+                        viewModel.openYesGiven()
+                        navController.navigate(AppRoute.FollowList.name)
+                    },
+                    onOpenNoGiven = {
+                        viewModel.openNoGiven()
+                        navController.navigate(AppRoute.FollowList.name)
+                    },
+                    onEditProfile = { viewModel.startEditProfile() },
                 )
+            }
+            composable(AppRoute.Activity.name) {
+                ActivityScreen()
             }
             composable(AppRoute.PostDetail.name) {
                 PostDetailScreen(

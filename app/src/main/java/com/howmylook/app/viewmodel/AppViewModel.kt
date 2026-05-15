@@ -475,6 +475,30 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun openYesGiven() {
+        followListUiState = FollowListUiState(
+            loading = false,
+            title = "Yes given",
+            people = emptyList(),
+            error = "Detailed Yes-given history is not wired yet in native."
+        )
+    }
+
+    fun openNoGiven() {
+        followListUiState = FollowListUiState(
+            loading = false,
+            title = "No given",
+            people = emptyList(),
+            error = "Detailed No-given history is not wired yet in native."
+        )
+    }
+
+    fun startEditProfile() {
+        profileUiState = profileUiState.copy(
+            error = "Profile editing entry is added, but the native edit form is the next step."
+        )
+    }
+
     fun submitUpload(contentResolver: ContentResolver) {
         val userId = currentUserId ?: run {
             uploadUiState = uploadUiState.copy(error = "You need to sign in before posting.")
