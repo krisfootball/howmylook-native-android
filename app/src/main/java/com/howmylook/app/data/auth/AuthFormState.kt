@@ -9,6 +9,7 @@ data class AuthFormState(
     val mode: AuthMode = AuthMode.SIGN_UP,
     val email: String = "",
     val password: String = "",
+    val acceptedPolicies: Boolean = false,
     val loading: Boolean = false,
     val message: String = "",
     val error: String? = null,

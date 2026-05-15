@@ -63,6 +63,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                 onModeChange = viewModel::setAuthMode,
                 onEmailChange = viewModel::updateEmail,
                 onPasswordChange = viewModel::updatePassword,
+                onAcceptedPoliciesChange = viewModel::updateAcceptedPolicies,
                 onSubmit = viewModel::submitAuth,
             )
         }

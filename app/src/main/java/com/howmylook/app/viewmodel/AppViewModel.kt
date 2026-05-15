@@ -191,6 +191,10 @@ class AppViewModel : ViewModel() {
         authFormState = authFormState.copy(password = password, error = null)
     }
 
+    fun updateAcceptedPolicies(accepted: Boolean) {
+        authFormState = authFormState.copy(acceptedPolicies = accepted, error = null)
+    }
+
     fun submitAuth() {
         val email = authFormState.email.trim()
         val password = authFormState.password
@@ -202,6 +206,11 @@ class AppViewModel : ViewModel() {
 
         if (password.length < 6) {
             authFormState = authFormState.copy(error = "Password must be at least 6 characters.")
+            return
+        }
+
+        if (authFormState.mode == AuthMode.SIGN_UP && !authFormState.acceptedPolicies) {
+            authFormState = authFormState.copy(error = "Please agree to the terms, privacy policy, and community guidelines.")
             return
         }
 

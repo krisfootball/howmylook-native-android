@@ -1,18 +1,27 @@
 package com.howmylook.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,10 +29,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.howmylook.app.data.auth.AuthFormState
@@ -40,9 +52,28 @@ import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 
+private val PinkBorder = Color(0xFFF6DCE8)
+private val PinkSurface = Color(0xFFFFF5FA)
+private val SoftText = Color(0xFF64748B)
+private val SuccessText = Color(0xFF166534)
+private val ErrorText = Color(0xFFB91C1C)
+private val AccentPink = Color(0xFFDB2777)
+private val DarkButton = Color(0xFF020617)
+
 @Composable
 fun SplashScreen() {
-    CenteredLabel("Loading HowMyLook…")
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("Loading HowMyLook…", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 @Composable
@@ -53,71 +84,151 @@ fun AuthScreen(
     onModeChange: (AuthMode) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onAcceptedPoliciesChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         Text(AppConfig.appName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Quick outfit feedback.")
-        Text(
-            text = bootstrapMessage,
-            modifier = Modifier.padding(top = 12.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray,
-        )
+        Text("Quick outfit feedback.", color = SoftText)
 
-        Row(modifier = Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = { onModeChange(AuthMode.SIGN_UP) },
-                modifier = Modifier.weight(1f),
-                enabled = !state.loading,
-            ) {
-                Text("Create account")
-            }
-            OutlinedButton(
-                onClick = { onModeChange(AuthMode.SIGN_IN) },
-                modifier = Modifier.weight(1f),
-                enabled = !state.loading,
-            ) {
-                Text("Sign in")
+        if (bootstrapMessage.isNotBlank()) {
+            Text(
+                text = bootstrapMessage,
+                modifier = Modifier.padding(top = 12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = SoftText,
+            )
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp),
+            shape = RoundedCornerShape(999.dp),
+            color = Color(0xFFFFEEF6),
+        ) {
+            Row(modifier = Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AuthModeChip(
+                    label = "Create account",
+                    selected = state.mode == AuthMode.SIGN_UP,
+                    onClick = { onModeChange(AuthMode.SIGN_UP) },
+                    enabled = !state.loading,
+                    modifier = Modifier.weight(1f),
+                )
+                AuthModeChip(
+                    label = "Sign in",
+                    selected = state.mode == AuthMode.SIGN_IN,
+                    onClick = { onModeChange(AuthMode.SIGN_IN) },
+                    enabled = !state.loading,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = onEmailChange,
-            label = { Text("Email") },
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            singleLine = true,
-        )
+                .padding(top = 14.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = Color(0xFFFFF6FA),
+            shadowElevation = 2.dp,
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (state.mode == AuthMode.SIGN_UP) {
+                    Surface(shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 1.dp) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Checkbox(
+                                checked = state.acceptedPolicies,
+                                onCheckedChange = onAcceptedPoliciesChange,
+                                enabled = !state.loading,
+                            )
+                            Text(
+                                "I agree to the Terms, Privacy Policy, and Community Guidelines.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SoftText,
+                            )
+                        }
+                    }
+                }
 
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = onPasswordChange,
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            singleLine = true,
-        )
+                OutlinedTextField(
+                    value = state.email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Email") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading,
+                    shape = RoundedCornerShape(16.dp),
+                )
 
-        Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), enabled = !state.loading) {
-            Text(if (state.loading) "Please wait..." else if (state.mode == AuthMode.SIGN_UP) "Continue with email" else "Sign in")
+                OutlinedTextField(
+                    value = state.password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("Password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading,
+                    shape = RoundedCornerShape(16.dp),
+                )
+
+                Button(
+                    onClick = onSubmit,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                    shape = RoundedCornerShape(999.dp),
+                ) {
+                    Text(if (state.loading) "Please wait..." else if (state.mode == AuthMode.SIGN_UP) "Continue with email" else "Sign in")
+                }
+            }
         }
 
         if (state.message.isNotBlank()) {
-            Text(state.message, modifier = Modifier.padding(top = 12.dp), color = Color(0xFF166534))
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                shape = RoundedCornerShape(22.dp),
+                color = if (state.message.contains("Check your email")) Color(0xFFECFDF3) else Color.White,
+                shadowElevation = 1.dp,
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        if (state.message.contains("Check your email")) "Check your email" else state.message,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (state.message.contains("Check your email")) SuccessText else MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (state.message.contains("Check your email")) {
+                        Text(
+                            "We sent you a confirmation link. Confirm your signup, then come back and sign in.",
+                            modifier = Modifier.padding(top = 6.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SuccessText.copy(alpha = 0.8f),
+                        )
+                    }
+                }
+            }
         }
 
         state.error?.let {
-            Text(it, modifier = Modifier.padding(top = 12.dp), color = Color(0xFFB91C1C))
+            Text(it, modifier = Modifier.padding(top = 12.dp), color = ErrorText)
         }
 
         if (!debugMessage.isNullOrBlank()) {
@@ -125,8 +236,28 @@ fun AuthScreen(
                 text = debugMessage,
                 modifier = Modifier.padding(top = 12.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = SoftText,
             )
+        }
+    }
+}
+
+@Composable
+private fun AuthModeChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) Color.White else Color.Transparent,
+        shadowElevation = if (selected) 2.dp else 0.dp,
+    ) {
+        Box(modifier = Modifier.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+            Text(label, color = if (selected) MaterialTheme.colorScheme.onSurface else SoftText, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -141,42 +272,65 @@ fun UsernameScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         Text("Choose your profile name", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Pick the name people will see when they open your looks and profile.")
+        Text("Pick the name people will see when they open your looks and profile.", color = SoftText)
 
-        OutlinedTextField(
-            value = state.username,
-            onValueChange = onUsernameChange,
-            label = { Text("Username") },
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            singleLine = true,
-        )
+            shape = RoundedCornerShape(28.dp),
+            color = PinkSurface,
+            shadowElevation = 2.dp,
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = state.username,
+                    onValueChange = onUsernameChange,
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading,
+                    shape = RoundedCornerShape(16.dp),
+                )
 
-        OutlinedTextField(
-            value = state.displayName,
-            onValueChange = onDisplayNameChange,
-            label = { Text("Display name") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            singleLine = true,
-        )
+                OutlinedTextField(
+                    value = state.displayName,
+                    onValueChange = onDisplayNameChange,
+                    label = { Text("Display name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.loading,
+                    shape = RoundedCornerShape(16.dp),
+                )
 
-        Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), enabled = !state.loading) {
-            Text(if (state.loading) "Saving..." else "Save profile")
+                Button(
+                    onClick = onSubmit,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                    shape = RoundedCornerShape(999.dp),
+                ) {
+                    Text(if (state.loading) "Saving..." else "Save profile")
+                }
+            }
         }
 
         if (state.message.isNotBlank()) {
-            Text(state.message, modifier = Modifier.padding(top = 12.dp), color = Color(0xFF166534))
+            Text(state.message, modifier = Modifier.padding(top = 12.dp), color = SuccessText)
         }
 
         state.error?.let {
-            Text(it, modifier = Modifier.padding(top = 12.dp), color = Color(0xFFB91C1C))
+            Text(it, modifier = Modifier.padding(top = 12.dp), color = ErrorText)
         }
     }
 }
@@ -196,37 +350,39 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = if (homeUiState.destination == HomeDestination.UNLOCKED_HOME) "Home" else "Rate 5 looks to unlock everything",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            if (homeUiState.destination == HomeDestination.UNLOCKED_HOME) {
-                "Unlocked. You can keep rating or move through the app."
-            } else {
-                "Progress: ${sessionState.unlockVotesCompleted}/${AppConfig.unlockVoteCount}"
-            }
-        )
-        if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
-            Text(
-                "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available right now, so unlock may complete early.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
             )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Surface(shape = RoundedCornerShape(999.dp), color = Color(0xCC000000)) {
+                    Text(
+                        "Rate 5 photos to access account",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
 
-        Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 2.dp) {
-            if (card == null) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (card == null) {
+            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("No more looks are ready to rate right now.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(homeUiState.statusMessage)
+                    Text(homeUiState.statusMessage, color = SoftText)
                 }
-            } else {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            }
+        } else {
+            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!card.imageUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = card.imageUrl,
@@ -234,59 +390,101 @@ fun HomeScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(360.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .height(460.dp)
+                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
                         )
                     } else {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(360.dp)
-                                .background(Color(0xFFEAEAEA), RoundedCornerShape(20.dp)),
+                                .height(460.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF)),
+                                    )
+                                )
+                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("Photo placeholder", color = Color.DarkGray)
+                            Text("Photo placeholder", color = SoftText)
                         }
                     }
 
-                    Button(onClick = { onOpenPost(card.id) }) { Text("Open") }
-                    Text(card.authorName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(card.occasion)
-                    if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
-                        Text("Needs ${card.needsMoreRatings} more ratings")
-                    }
-                    Text("Yes ${card.yesCount} · No ${card.noCount}")
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(onClick = onVoteNo, modifier = Modifier.weight(1f)) { Text(AppConfig.noLabel) }
-                        Button(onClick = onVoteYes, modifier = Modifier.weight(1f)) { Text(AppConfig.yesLabel) }
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(card.authorName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(card.occasion, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Yes ${card.yesCount} · No ${card.noCount}", color = SoftText)
+                        if (homeUiState.destination == HomeDestination.LOCKED_HOME && card.needsMoreRatings > 0) {
+                            Text("This look still needs ${card.needsMoreRatings} more ratings.", style = MaterialTheme.typography.bodySmall, color = SoftText)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = onVoteNo,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                                shape = RoundedCornerShape(999.dp),
+                            ) { Text(AppConfig.noLabel) }
+                            Button(
+                                onClick = onVoteYes,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                                shape = RoundedCornerShape(999.dp),
+                            ) { Text(AppConfig.yesLabel) }
+                        }
+                        Button(
+                            onClick = { onOpenPost(card.id) },
+                            shape = RoundedCornerShape(999.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                        ) {
+                            Text("Open")
+                        }
                     }
                 }
             }
         }
 
-        if (card != null && card.needsMoreRatings > 0 && homeUiState.destination == HomeDestination.LOCKED_HOME) {
+        if (homeUiState.isLoading) {
+            Text("Loading rating queue...", style = MaterialTheme.typography.bodySmall, color = SoftText)
+        }
+        if (homeUiState.statusMessage.isNotBlank()) {
+            Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = SoftText)
+        }
+        if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
             Text(
-                "This look still needs ${card.needsMoreRatings} more ratings.",
+                "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available right now, so unlock may complete early.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = SoftText,
             )
         }
 
-        if (homeUiState.isLoading) {
-            Text("Loading rating queue...", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        }
+        BottomShortcutRow(onOpenSearch = onOpenSearch, onOpenUpload = onOpenUpload, onOpenProfile = onOpenProfile)
+    }
+}
 
-        if (homeUiState.statusMessage.isNotBlank()) {
-            Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        }
-        if (sessionState.bootstrapMessage.isNotBlank() && sessionState.bootstrapMessage != homeUiState.statusMessage) {
-            Text(sessionState.bootstrapMessage, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        }
+@Composable
+private fun BottomShortcutRow(
+    onOpenSearch: () -> Unit,
+    onOpenUpload: () -> Unit,
+    onOpenProfile: () -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        SmallNavButton(label = "Home", active = true, onClick = {})
+        SmallNavButton(label = "Search", onClick = onOpenSearch)
+        SmallNavButton(label = "Post", onClick = onOpenUpload)
+        SmallNavButton(label = "Profile", onClick = onOpenProfile)
+    }
+}
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onOpenSearch, modifier = Modifier.weight(1f)) { Text("Search") }
-            Button(onClick = onOpenUpload, modifier = Modifier.weight(1f)) { Text("Post") }
-            Button(onClick = onOpenProfile, modifier = Modifier.weight(1f)) { Text("Profile") }
+@Composable
+private fun SmallNavButton(label: String, active: Boolean = false, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = if (active) Color(0xFFFFEEF6) else Color.White,
+        shadowElevation = 1.dp,
+    ) {
+        Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
+            Text(label, color = if (active) AccentPink else SoftText, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -296,75 +494,125 @@ fun SearchScreen(state: SearchUiState, onBack: () -> Unit, onOpenPerson: (String
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
-        Text("Search", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Explore looks and people.", color = Color.Gray)
+        BackPill(onBack)
+        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("⌕", color = SoftText)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Search people or occasion", color = SoftText)
+            }
+        }
 
         if (state.loading) {
-            Text("Loading search...", color = Color.Gray)
+            Text("Loading...", color = SoftText)
         }
-
         state.error?.let {
-            Text(it, color = Color(0xFFB91C1C))
+            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
+                Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
+            }
         }
 
-        Text("Looks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        state.looks.forEach { look ->
-            Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 1.dp, onClick = { onOpenPost(look.id) }) {
-                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (!look.imageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = look.imageUrl,
-                            contentDescription = look.occasion,
-                            contentScale = ContentScale.Crop,
+        if (state.people.isNotEmpty()) {
+            SectionTitle("People")
+            Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.people.forEach { person ->
+                        Row(
                             modifier = Modifier
-                                .height(120.dp)
-                                .weight(0.8f)
-                                .clip(RoundedCornerShape(16.dp)),
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .height(120.dp)
-                                .weight(0.8f)
-                                .background(Color(0xFFEAEAEA), RoundedCornerShape(16.dp)),
-                            contentAlignment = Alignment.Center,
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .clickable { onOpenPerson(person.id) }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Preview", color = Color.DarkGray)
-                        }
-                    }
-                    Column(modifier = Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(look.occasion, fontWeight = FontWeight.SemiBold)
-                        Text("Yes ${look.yesCount} · No ${look.noCount}", color = Color.Gray)
-                        if (look.imageCount > 1) {
-                            Text("${look.imageCount} photos", color = Color.Gray)
+                            if (!person.avatarUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = person.avatarUrl,
+                                    contentDescription = person.displayName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape),
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(
+                                            brush = Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))),
+                                            shape = CircleShape,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) { Text("✨") }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(person.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(person.username, color = SoftText, style = MaterialTheme.typography.bodySmall)
+                                if (person.bio.isNotBlank()) {
+                                    Text(person.bio, color = SoftText, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        Text("People", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        state.people.forEach { person ->
-            Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 1.dp, onClick = { onOpenPerson(person.id) }) {
-                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .height(52.dp)
-                            .weight(0.2f)
-                            .background(Color(0xFFF3E8FF), RoundedCornerShape(26.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("✨")
+        SectionTitle("Looks")
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            state.looks.chunked(3).forEachIndexed { rowIndex, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    row.forEachIndexed { columnIndex, look ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .clickable { onOpenPost(look.id) },
+                        ) {
+                            if (!look.imageUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = look.imageUrl,
+                                    contentDescription = look.occasion,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                val colors = when ((rowIndex + columnIndex) % 3) {
+                                    0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                                    1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                                    else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
+                                }
+                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .fillMaxWidth()
+                                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                    .padding(8.dp),
+                            ) {
+                                Text("${look.yesCount} yes · ${look.noCount} no", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
-                    Column(modifier = Modifier.weight(0.8f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(person.displayName, fontWeight = FontWeight.SemiBold)
-                        Text(person.username, color = Color.Gray)
-                        Text(person.bio, color = Color.Gray)
-                        Text(if (person.isFollowing) "Following" else "Open profile", color = Color(0xFFDB2777))
+                    repeat(3 - row.size) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -383,25 +631,49 @@ fun UploadScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
-        Text("Post", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Choose 1 to 5 photos and add an occasion.", color = Color.Gray)
+        BackPill(onBack)
 
-        Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 1.dp) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Upload outfit photos", fontWeight = FontWeight.SemiBold)
-                Text("Start with 1 to 5 photos. New looks go to moderation first.", color = Color.Gray)
-                Text("Selected photos: ${state.selectedPhotos.size}")
-                if (state.selectedPhotoNames.isNotEmpty()) {
-                    state.selectedPhotoNames.forEachIndexed { index, name ->
-                        Text("• ${name.ifBlank { "Photo ${index + 1}" }}", color = Color.Gray)
+        Surface(shape = RoundedCornerShape(28.dp), color = Color(0xFFFFF6FA), shadowElevation = 2.dp) {
+            Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(Color.White, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("📷")
+                }
+                Text("Upload outfit photos", modifier = Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Choose 1 to 5 photos and add an occasion.", modifier = Modifier.padding(top = 6.dp), color = SoftText)
+
+                Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = onPickPhotos,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                    ) {
+                        Text(if (state.selectedPhotos.isEmpty()) "Choose photos" else "Replace photos")
                     }
                 }
-                Button(onClick = onPickPhotos, enabled = !state.loading) {
-                    Text(if (state.selectedPhotos.isEmpty()) "Choose photos" else "Replace photos")
+            }
+        }
+
+        if (state.selectedPhotoNames.isNotEmpty()) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Selected photos: ${state.selectedPhotos.size}", fontWeight = FontWeight.SemiBold)
+                    state.selectedPhotoNames.forEachIndexed { index, name ->
+                        Text("• ${name.ifBlank { "Photo ${index + 1}" }}", color = SoftText)
+                    }
                 }
             }
         }
@@ -412,25 +684,27 @@ fun UploadScreen(
             label = { Text("Occasion") },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.loading,
+            shape = RoundedCornerShape(18.dp),
         )
 
         Button(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.loading && state.selectedPhotos.isNotEmpty(),
+            shape = RoundedCornerShape(999.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
         ) {
             Text(if (state.loading) "Publishing..." else "Publish look")
         }
 
         if (state.selectedPhotos.isEmpty()) {
-            Text("Choose at least 1 photo before publishing.", color = Color.Gray)
+            Text("Choose at least 1 photo before publishing.", color = SoftText)
         }
-
         if (state.message.isNotBlank()) {
-            Text(state.message, color = Color(0xFF166534))
+            Text(state.message, color = SuccessText)
         }
         state.error?.let {
-            Text(it, color = Color(0xFFB91C1C))
+            Text(it, color = ErrorText)
         }
     }
 }
@@ -446,48 +720,64 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
+        BackPill(onBack)
 
         if (state.loading) {
-            Text("Loading profile...", color = Color.Gray)
+            Text("Loading profile...", color = SoftText)
         }
 
-        Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 1.dp) {
+        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (!state.avatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = state.avatarUrl,
-                        contentDescription = state.displayName,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(84.dp)
-                            .clip(RoundedCornerShape(20.dp)),
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(84.dp)
-                            .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("✨")
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    if (!state.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = state.avatarUrl,
+                            contentDescription = state.displayName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(78.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(78.dp)
+                                .background(Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("✨") }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                        Text(state.username, color = SoftText)
+                        Text(state.bio, modifier = Modifier.padding(top = 10.dp), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
-                Text(state.displayName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(state.username, color = Color.Gray)
-                Text(state.bio)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onOpenFollowers, enabled = !state.loading) { Text("Followers ${state.followers}") }
-                    Button(onClick = onOpenFollowing, enabled = !state.loading) { Text("Following ${state.following}") }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatPill("Followers", state.followers.toString(), onOpenFollowers)
+                    StatPill("Following", state.following.toString(), onOpenFollowing)
                 }
-                Text("Yes given ${state.yesGiven} · No given ${state.noGiven}", color = Color.Gray)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatPill("Yes given", state.yesGiven.toString(), null)
+                    StatPill("No given", state.noGiven.toString(), null)
+                }
+
                 if (!state.isOwnProfile && state.profileId != null) {
-                    Button(onClick = onToggleFollow, enabled = !state.loading) {
+                    Button(
+                        onClick = onToggleFollow,
+                        enabled = !state.loading,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                    ) {
                         Text(if (state.loading) "Saving..." else if (state.isFollowing) "Following" else "Follow")
                     }
                 }
@@ -495,7 +785,21 @@ fun ProfileScreen(
         }
 
         state.error?.let {
-            Text(it, color = Color(0xFFB91C1C))
+            Text(it, color = ErrorText)
+        }
+    }
+}
+
+@Composable
+private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
+    Surface(
+        modifier = Modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        shape = RoundedCornerShape(18.dp),
+        color = PinkSurface,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(value, fontWeight = FontWeight.SemiBold)
+            Text(label, color = SoftText, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -505,17 +809,20 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black)
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
+        Button(
+            onClick = onBack,
+            shape = RoundedCornerShape(999.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f), contentColor = Color.White),
+        ) { Text("Back") }
         if (state.loading) {
-            Text("Loading post...", color = Color.Gray)
+            Text("Loading post...", color = Color.White.copy(alpha = 0.8f))
         }
-        state.error?.let { Text(it, color = Color(0xFFB91C1C)) }
-        if (!state.loading && state.imageUrls.isEmpty() && state.error == null) {
-            Text("No image available for this post.", color = Color.Gray)
-        }
+        state.error?.let { Text(it, color = Color(0xFFFDA4AF)) }
         if (state.imageUrls.isNotEmpty()) {
             AsyncImage(
                 model = state.imageUrls.first(),
@@ -523,13 +830,13 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(420.dp)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .height(480.dp)
+                    .clip(RoundedCornerShape(26.dp)),
             )
         }
-        Text(state.authorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(state.occasion)
-        Text("Yes ${state.yesCount} · No ${state.noCount}", color = Color.Gray)
+        Text(state.authorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(state.occasion, color = Color.White.copy(alpha = 0.9f))
+        Text("Yes ${state.yesCount} · No ${state.noCount}", color = Color.White.copy(alpha = 0.72f))
     }
 }
 
@@ -538,24 +845,37 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
+        BackPill(onBack)
         Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
-            Text("Loading ${state.title.lowercase()}...", color = Color.Gray)
+            Text("Loading ${state.title.lowercase()}...", color = SoftText)
         }
-        state.error?.let { Text(it, color = Color(0xFFB91C1C)) }
+        state.error?.let { Text(it, color = ErrorText) }
         if (!state.loading && state.people.isEmpty()) {
-            Text("No one here yet.", color = Color.Gray)
+            Text("No one here yet.", color = SoftText)
         }
         state.people.forEach { person ->
-            Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 1.dp, onClick = { onOpenPerson(person.id) }) {
+            Surface(
+                modifier = Modifier.clickable { onOpenPerson(person.id) },
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+            ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(person.displayName, fontWeight = FontWeight.SemiBold)
-                    Text(person.username, color = Color.Gray)
-                    Text(person.bio, color = Color.Gray)
+                    Text(person.username, color = SoftText)
+                    if (person.bio.isNotBlank()) {
+                        Text(person.bio, color = SoftText)
+                    }
                 }
             }
         }
@@ -563,22 +883,17 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
 }
 
 @Composable
-private fun SimpleScreen(title: String, onBack: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Button(onClick = onBack) { Text("Back") }
-    }
+private fun SectionTitle(text: String) {
+    Text(text, color = AccentPink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
-private fun CenteredLabel(text: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text)
+private fun BackPill(onBack: () -> Unit) {
+    Button(
+        onClick = onBack,
+        shape = RoundedCornerShape(999.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.onSurface),
+    ) {
+        Text("Back")
     }
 }
