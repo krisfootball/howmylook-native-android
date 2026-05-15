@@ -71,15 +71,13 @@ class FeedRepository {
                 error("Sign in first before rating looks.")
             }
 
-            val response = client.postgrest.rpc(
+            client.postgrest.rpc(
                 function = "cast_vote",
                 parameters = buildJsonObject {
                     put("target_post_id", JsonPrimitive(postId))
                     put("vote_value", JsonPrimitive(voteValue))
                 }
-            )
-
-            response.decodeSingle<VoteResultDto>()
+            ).decodeAs<VoteResultDto>()
         }.fold(
             onSuccess = { Result.success(it) },
             onFailure = { error ->
