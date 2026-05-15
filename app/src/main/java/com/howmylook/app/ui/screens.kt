@@ -341,7 +341,6 @@ fun HomeScreen(
     homeUiState: HomeUiState,
     onVoteYes: () -> Unit,
     onVoteNo: () -> Unit,
-    onOpenPost: (String) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -466,14 +465,6 @@ fun HomeScreen(
                         shape = RoundedCornerShape(999.dp),
                     ) { Text(AppConfig.yesLabel) }
                 }
-                Button(
-                    onClick = { onOpenPost(card.id) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEEF6), contentColor = Color.Black),
-                ) {
-                    Text("Open full post")
-                }
             }
         }
     }
@@ -495,7 +486,7 @@ private fun LockBanner() {
 }
 
 @Composable
-fun SearchScreen(state: SearchUiState, onOpenPerson: (String) -> Unit, onOpenPost: (String) -> Unit) {
+fun SearchScreen(state: SearchUiState, onOpenPost: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -527,53 +518,6 @@ fun SearchScreen(state: SearchUiState, onOpenPerson: (String) -> Unit, onOpenPos
         state.error?.let {
             Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
                 Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
-            }
-        }
-
-        if (state.people.isNotEmpty()) {
-            SectionTitle("People")
-            Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.people.forEach { person ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
-                                .clickable { onOpenPerson(person.id) }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (!person.avatarUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = person.avatarUrl,
-                                    contentDescription = person.displayName,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape),
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            brush = Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))),
-                                            shape = CircleShape,
-                                        ),
-                                    contentAlignment = Alignment.Center,
-                                ) { Text("✨") }
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(person.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(person.username, color = SoftText, style = MaterialTheme.typography.bodySmall)
-                                if (person.bio.isNotBlank()) {
-                                    Text(person.bio, color = SoftText, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -829,7 +773,7 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
             AsyncImage(
                 model = state.imageUrls.first(),
                 contentDescription = state.occasion,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
         }

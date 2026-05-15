@@ -543,14 +543,16 @@ class AppViewModel : ViewModel() {
 
     private fun submitVote(value: String) {
         val card = currentCard ?: return
+        if (homeUiState.isLoading) return
+
         viewModelScope.launch {
+            homeUiState = homeUiState.copy(isLoading = true, statusMessage = "Saving vote...")
             feedRepository.castVote(supabaseConfig, card.id, value)
                 .onSuccess { result ->
                     val nextUnlockVotes = result.loginRatingVotesCompleted
                         ?: result.unlockVotesCompleted
                         ?: (sessionState.unlockVotesCompleted + 1)
 
-                    sessionState = sessionState.copy(unlockVotesCompleted = nextUnlockVotes)
                     val nextQueue = ratingQueue.filterNot { it.id == card.id }
                     ratingQueue = nextQueue
                     currentCard = nextQueue.firstOrNull()
@@ -565,12 +567,18 @@ class AppViewModel : ViewModel() {
                         bootstrapMessage = nextMessage,
                     )
                     homeUiState = homeUiState.copy(
+                        isLoading = false,
                         destination = if (nextUnlockVotes >= AppConfig.unlockVoteCount) HomeDestination.UNLOCKED_HOME else HomeDestination.LOCKED_HOME,
                         statusMessage = nextMessage,
                     )
+                    loadSearch()
+                    loadProfile()
                 }
                 .onFailure { error ->
-                    bootstrapMessage = error.message ?: "Unable to save vote."
+                    val message = error.message ?: "Unable to save vote."
+                    bootstrapMessage = message
+                    sessionState = sessionState.copy(bootstrapMessage = message)
+                    homeUiState = homeUiState.copy(isLoading = false, statusMessage = message)
                 }
         }
     }

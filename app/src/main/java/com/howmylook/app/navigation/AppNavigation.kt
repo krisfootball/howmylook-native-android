@@ -167,19 +167,11 @@ fun AppNavigation(viewModel: AppViewModel) {
                     homeUiState = viewModel.homeUiState,
                     onVoteYes = viewModel::voteYes,
                     onVoteNo = viewModel::voteNo,
-                    onOpenPost = { postId ->
-                        viewModel.openPostDetail(postId)
-                        navController.navigate(AppRoute.PostDetail.name)
-                    },
                 )
             }
             composable(AppRoute.Search.name) {
                 SearchScreen(
                     state = viewModel.searchUiState,
-                    onOpenPerson = { profileId ->
-                        viewModel.openPersonProfile(profileId)
-                        navController.navigate(AppRoute.Profile.name)
-                    },
                     onOpenPost = { postId ->
                         viewModel.openPostDetail(postId)
                         navController.navigate(AppRoute.PostDetail.name)
