@@ -682,6 +682,7 @@ fun ProfileScreen(
 ) {
     val uriHandler = LocalUriHandler.current
     var menuExpanded by remember { mutableStateOf(false) }
+    val keptCount = state.posts.count { it.keepForever }
 
     Column(
         modifier = Modifier
@@ -693,15 +694,18 @@ fun ProfileScreen(
             )
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-
         if (state.loading) {
             Text("Loading profile...", color = SoftText)
         }
 
-        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(
+            shape = RoundedCornerShape(30.dp),
+            color = Color(0xFFFFFBFD),
+            shadowElevation = 2.dp,
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     if (!state.avatarUrl.isNullOrBlank()) {
                         AsyncImage(
@@ -720,10 +724,11 @@ fun ProfileScreen(
                             contentAlignment = Alignment.Center,
                         ) { Text("✨") }
                     }
+
                     Column(modifier = Modifier.weight(1f)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                                Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Text(state.username, color = SoftText)
                             }
                             Box {
@@ -761,20 +766,11 @@ fun ProfileScreen(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatPill("Followers", state.followers.toString(), onOpenFollowers)
-                    StatPill("Following", state.following.toString(), onOpenFollowing)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatPill("Yes given", state.yesGiven.toString(), onOpenYesGiven)
-                    StatPill("No given", state.noGiven.toString(), onOpenNoGiven)
-                }
-
                 if (state.isOwnProfile) {
                     Button(
                         onClick = onEditProfile,
                         shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
                     ) {
                         Text("Edit profile")
                     }
@@ -790,69 +786,88 @@ fun ProfileScreen(
                         Text(if (state.loading) "Saving..." else if (state.isFollowing) "Following" else "Follow")
                     }
                 }
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ProfileStatCard("FOLLOWERS", state.followers.toString(), onOpenFollowers)
+                        ProfileStatCard("FOLLOWING", state.following.toString(), onOpenFollowing)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ProfileStatCard("YES GIVEN", state.yesGiven.toString(), onOpenYesGiven)
+                        ProfileStatCard("NO GIVEN", state.noGiven.toString(), onOpenNoGiven)
+                    }
+                }
             }
         }
 
-        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 1.dp) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Looks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                if (state.posts.isEmpty()) {
-                    Text("No published looks yet.", color = SoftText)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.posts.chunked(3).forEachIndexed { rowIndex, row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                row.forEachIndexed { columnIndex, post ->
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(180.dp)
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .clickable { onOpenPost(post.id) },
-                                    ) {
-                                        if (!post.imageUrl.isNullOrBlank()) {
-                                            AsyncImage(
-                                                model = post.imageUrl,
-                                                contentDescription = post.occasion,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize(),
-                                            )
-                                        } else {
-                                            val colors = when ((rowIndex + columnIndex) % 3) {
-                                                0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
-                                                1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
-                                                else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
-                                            }
-                                            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
-                                        }
-                                        if (post.keepForever) {
-                                            Text(
-                                                "📌",
-                                                modifier = Modifier
-                                                    .align(Alignment.TopEnd)
-                                                    .padding(8.dp),
-                                                color = Color.White,
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .align(Alignment.BottomStart)
-                                                .fillMaxWidth()
-                                                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
-                                                .padding(8.dp),
-                                        ) {
-                                            Text(
-                                                "${post.yesCount} yes · ${post.noCount} no",
-                                                color = Color.White,
-                                                style = MaterialTheme.typography.labelSmall,
-                                            )
-                                        }
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = Color(0xFFFDF3F8),
+            shadowElevation = 1.dp,
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Looks disappear after 30 days unless you keep them.", color = MaterialTheme.colorScheme.onSurface)
+                Text("$keptCount of 10 kept", color = AccentPink, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        if (state.posts.isEmpty()) {
+            Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 1.dp) {
+                Text("No published looks yet.", modifier = Modifier.padding(16.dp), color = SoftText)
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                state.posts.chunked(3).forEachIndexed { rowIndex, row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        row.forEachIndexed { columnIndex, post ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .clickable { onOpenPost(post.id) },
+                            ) {
+                                if (!post.imageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = post.imageUrl,
+                                        contentDescription = post.occasion,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    val colors = when ((rowIndex + columnIndex) % 3) {
+                                        0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                                        1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                                        else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
                                     }
+                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
-                                repeat(3 - row.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
+                                if (post.keepForever) {
+                                    Text(
+                                        "📌",
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp),
+                                        color = Color.White,
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .fillMaxWidth()
+                                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                        .padding(8.dp),
+                                ) {
+                                    Text(
+                                        "${post.yesCount} yes · ${post.noCount} no",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
                                 }
                             }
+                        }
+                        repeat(3 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -1204,6 +1219,26 @@ fun EditProfileScreen(
                 }
                 state.error?.let { Text(it, color = ErrorText) }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfileStatCard(label: String, value: String, onClick: (() -> Unit)?) {
+    Surface(
+        modifier = Modifier
+            .weight(1f)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        shape = RoundedCornerShape(22.dp),
+        color = Color(0xFFF9EEF4),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(label, color = AccentPink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+            Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
         }
     }
 }

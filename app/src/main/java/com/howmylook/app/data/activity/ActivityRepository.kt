@@ -102,7 +102,7 @@ class ActivityRepository {
                 )
             }
 
-            val voteItems = voteRows.mapIndexed { row, index ->
+            val voteItems = voteRows.mapIndexed { index, row ->
                 val profile = client.from("profiles")
                     .select(columns = Columns.list("display_name", "username")) {
                         filter { eq("id", row.userId) }
