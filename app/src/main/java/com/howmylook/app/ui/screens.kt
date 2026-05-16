@@ -1227,8 +1227,8 @@ fun EditProfileScreen(
 private fun ProfileStatCard(label: String, value: String, onClick: (() -> Unit)?) {
     Surface(
         modifier = Modifier
-            .weight(1f)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .weight(1f),
         shape = RoundedCornerShape(22.dp),
         color = Color(0xFFF9EEF4),
     ) {

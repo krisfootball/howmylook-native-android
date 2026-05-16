@@ -24,7 +24,7 @@ private data class FollowRowDto(
 )
 
 @Serializable
-private data class VoteCountRowDto(
+private data class PeopleVoteCountRowDto(
     @SerialName("post_id") val postId: String? = null,
 )
 
@@ -76,7 +76,7 @@ class PeopleRepository {
                         eq("value", "yes")
                     }
                 }
-                .decodeList<VoteCountRowDto>()
+                .decodeList<PeopleVoteCountRowDto>()
                 .size
 
             val noGivenCount = client.from("votes")
@@ -86,7 +86,7 @@ class PeopleRepository {
                         eq("value", "no")
                     }
                 }
-                .decodeList<VoteCountRowDto>()
+                .decodeList<PeopleVoteCountRowDto>()
                 .size
 
             val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }

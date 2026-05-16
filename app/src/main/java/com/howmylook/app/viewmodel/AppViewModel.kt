@@ -680,6 +680,10 @@ class AppViewModel : ViewModel() {
                 username = editProfileFormState.username,
                 displayName = editProfileFormState.displayName,
                 bio = editProfileFormState.bio,
+                avatarUrl = editProfileFormState.avatarUrl,
+                selectedAvatarUri = editProfileFormState.selectedAvatarUri,
+                removeAvatar = editProfileFormState.removeAvatar,
+                contentResolver = contentResolver,
             )
                 .onSuccess { message ->
                     editProfileFormState = editProfileFormState.copy(saving = false, message = message, error = null)
