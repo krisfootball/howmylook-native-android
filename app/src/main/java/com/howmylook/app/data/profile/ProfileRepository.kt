@@ -4,7 +4,6 @@ import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
-import io.github.jan.supabase.postgrest.query.Count
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -32,18 +31,18 @@ class ProfileRepository {
                 .decodeSingleOrNull<ProfileDetailsDto>()
 
             val followersCount = client.from("follows")
-                .select(count = Count.EXACT) {
+                .select(columns = Columns.list("follower_id")) {
                     filter { eq("following_id", userId) }
-                    head = true
                 }
-                .countOrNull() ?: 0
+                .decodeList<Map<String, String?>>()
+                .size
 
             val followingCount = client.from("follows")
-                .select(count = Count.EXACT) {
+                .select(columns = Columns.list("following_id")) {
                     filter { eq("follower_id", userId) }
-                    head = true
                 }
-                .countOrNull() ?: 0
+                .decodeList<Map<String, String?>>()
+                .size
 
             val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
 
