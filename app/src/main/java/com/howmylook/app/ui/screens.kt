@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -790,12 +789,12 @@ fun ProfileScreen(
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProfileStatCard("FOLLOWERS", state.followers.toString(), onOpenFollowers)
-                        ProfileStatCard("FOLLOWING", state.following.toString(), onOpenFollowing)
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("FOLLOWERS", state.followers.toString(), onOpenFollowers) }
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("FOLLOWING", state.following.toString(), onOpenFollowing) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProfileStatCard("YES GIVEN", state.yesGiven.toString(), onOpenYesGiven)
-                        ProfileStatCard("NO GIVEN", state.noGiven.toString(), onOpenNoGiven)
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("YES GIVEN", state.yesGiven.toString(), onOpenYesGiven) }
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("NO GIVEN", state.noGiven.toString(), onOpenNoGiven) }
                     }
                 }
             }
@@ -1228,8 +1227,8 @@ fun EditProfileScreen(
 private fun ProfileStatCard(label: String, value: String, onClick: (() -> Unit)?) {
     Surface(
         modifier = Modifier
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .weight(1f),
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(22.dp),
         color = Color(0xFFF9EEF4),
     ) {
