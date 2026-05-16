@@ -8,6 +8,11 @@ data class PostDetailUiState(
     val imageUrls: List<String> = emptyList(),
     val yesCount: Int = 0,
     val noCount: Int = 0,
+    val ownerId: String? = null,
+    val isOwnPost: Boolean = false,
+    val keepForever: Boolean = false,
+    val fromRoute: String = "",
+    val actionMessage: String = "",
     val error: String? = null,
 )
 

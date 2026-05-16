@@ -16,6 +16,9 @@ data class EditProfileFormState(
     val displayName: String = "",
     val bio: String = "",
     val avatarUrl: String? = null,
+    val selectedAvatarUri: String? = null,
+    val selectedAvatarName: String? = null,
+    val removeAvatar: Boolean = false,
     val message: String = "",
     val error: String? = null,
 )

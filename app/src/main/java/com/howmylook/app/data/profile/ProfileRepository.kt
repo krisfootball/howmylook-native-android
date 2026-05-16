@@ -13,8 +13,11 @@ private data class ProfileDetailsDto(
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("bio") val bio: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
-    @SerialName("total_yes_given") val totalYesGiven: Int? = null,
-    @SerialName("total_no_given") val totalNoGiven: Int? = null,
+)
+
+@Serializable
+private data class VoteCountRowDto(
+    @SerialName("post_id") val postId: String? = null,
 )
 
 class ProfileRepository {
@@ -24,7 +27,7 @@ class ProfileRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val profile = client.from("profiles")
-                .select(columns = Columns.list("username", "display_name", "bio", "avatar_url", "total_yes_given", "total_no_given")) {
+                .select(columns = Columns.list("username", "display_name", "bio", "avatar_url")) {
                     filter { eq("id", userId) }
                     limit(1)
                 }
@@ -44,6 +47,26 @@ class ProfileRepository {
                 .decodeList<Map<String, String?>>()
                 .size
 
+            val yesGivenCount = client.from("votes")
+                .select(columns = Columns.list("post_id")) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("value", "yes")
+                    }
+                }
+                .decodeList<VoteCountRowDto>()
+                .size
+
+            val noGivenCount = client.from("votes")
+                .select(columns = Columns.list("post_id")) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("value", "no")
+                    }
+                }
+                .decodeList<VoteCountRowDto>()
+                .size
+
             val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
 
             ProfileUiState(
@@ -53,8 +76,8 @@ class ProfileRepository {
                 username = profile?.username?.let { "@$it" } ?: "@username",
                 bio = profile?.bio ?: "No bio yet.",
                 avatarUrl = profile?.avatarUrl,
-                yesGiven = profile?.totalYesGiven ?: 0,
-                noGiven = profile?.totalNoGiven ?: 0,
+                yesGiven = yesGivenCount,
+                noGiven = noGivenCount,
                 followers = followersCount,
                 following = followingCount,
                 posts = posts,

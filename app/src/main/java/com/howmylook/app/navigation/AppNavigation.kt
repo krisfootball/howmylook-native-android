@@ -38,11 +38,11 @@ import com.howmylook.app.ui.screens.FollowListScreen
 import com.howmylook.app.ui.screens.HomeScreen
 import com.howmylook.app.ui.screens.PostDetailScreen
 import com.howmylook.app.ui.screens.ProfileScreen
-import com.howmylook.app.ui.screens.VoteHistoryScreen
 import com.howmylook.app.ui.screens.SearchScreen
 import com.howmylook.app.ui.screens.SplashScreen
 import com.howmylook.app.ui.screens.UploadScreen
 import com.howmylook.app.ui.screens.UsernameScreen
+import com.howmylook.app.ui.screens.VoteHistoryScreen
 import com.howmylook.app.viewmodel.AppViewModel
 
 data class BottomNavItem(
@@ -66,13 +66,24 @@ fun AppNavigation(viewModel: AppViewModel) {
         BottomNavItem(AppRoute.Activity, "Activity") { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Activity") },
         BottomNavItem(AppRoute.Profile, "Profile") { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
     )
+    val availableBottomNavItems = if (viewModel.sessionState.needsUnlockRatings) {
+        bottomNavItems.filter { it.route == AppRoute.Home }
+    } else {
+        bottomNavItems
+    }
 
-    val showBottomBar = currentRoute in bottomNavItems.map { it.route.name }
+    val showBottomBar = currentRoute in availableBottomNavItems.map { it.route.name }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
         onResult = { uris ->
             viewModel.setSelectedUploadPhotos(uris.map { it.toString() })
+        },
+    )
+    val editAvatarPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            viewModel.setEditAvatar(uri?.toString())
         },
     )
 
@@ -82,10 +93,12 @@ fun AppNavigation(viewModel: AppViewModel) {
         }
     }
 
+
     LaunchedEffect(
         viewModel.sessionState.isLoading,
         viewModel.sessionState.isSignedIn,
         viewModel.sessionState.needsUsername,
+        viewModel.sessionState.needsUnlockRatings,
     ) {
         val routeName = viewModel.resolveStartRoute().name
         if (navController.currentDestination?.route != routeName) {
@@ -105,7 +118,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                         containerColor = Color.White,
                         tonalElevation = 0.dp,
                     ) {
-                        bottomNavItems.forEach { item ->
+                        availableBottomNavItems.forEach { item ->
                             val selected = backStackEntry?.destination?.hierarchy?.any { it.route == item.route.name } == true
                             NavigationBarItem(
                                 selected = selected,
@@ -172,98 +185,162 @@ fun AppNavigation(viewModel: AppViewModel) {
                 )
             }
             composable(AppRoute.Search.name) {
-                SearchScreen(
-                    state = viewModel.searchUiState,
-                    onOpenPost = { postId ->
-                        viewModel.openPostDetail(postId)
-                        navController.navigate(AppRoute.PostDetail.name)
-                    },
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    SearchScreen(
+                        state = viewModel.searchUiState,
+                        onOpenPost = { postId ->
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
+                            navController.navigate(AppRoute.PostDetail.name)
+                        },
+                    )
+                }
             }
             composable(AppRoute.Upload.name) {
-                UploadScreen(
-                    state = viewModel.uploadUiState,
-                    onOccasionChange = viewModel::updateUploadOccasion,
-                    onPickPhotos = viewModel::requestUploadPhotoPicker,
-                    onSubmit = { viewModel.submitUpload(context.contentResolver) },
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    UploadScreen(
+                        state = viewModel.uploadUiState,
+                        onOccasionChange = viewModel::updateUploadOccasion,
+                        onPickPhotos = viewModel::requestUploadPhotoPicker,
+                        onSubmit = { viewModel.submitUpload(context.contentResolver) },
+                    )
+                }
             }
             composable(AppRoute.Profile.name) {
-                ProfileScreen(
-                    state = viewModel.profileUiState,
-                    onBack = { navController.popBackStack() },
-                    onToggleFollow = viewModel::followSelectedProfile,
-                    onOpenFollowers = {
-                        viewModel.openFollowers()
-                        navController.navigate(AppRoute.FollowList.name)
-                    },
-                    onOpenFollowing = {
-                        viewModel.openFollowing()
-                        navController.navigate(AppRoute.FollowList.name)
-                    },
-                    onOpenYesGiven = {
-                        viewModel.openYesGiven()
-                        navController.navigate(AppRoute.VoteHistory.name)
-                    },
-                    onOpenNoGiven = {
-                        viewModel.openNoGiven()
-                        navController.navigate(AppRoute.VoteHistory.name)
-                    },
-                    onEditProfile = {
-                        viewModel.startEditProfile()
-                        navController.navigate(AppRoute.EditProfile.name)
-                    },
-                    onOpenPost = { postId ->
-                        viewModel.openPostDetail(postId)
-                        navController.navigate(AppRoute.PostDetail.name)
-                    },
-                    onLogOut = {
-                        viewModel.signOut()
-                        navController.navigate(AppRoute.Auth.name) {
-                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    ProfileScreen(
+                        state = viewModel.profileUiState,
+                        onBack = { navController.popBackStack() },
+                        onToggleFollow = viewModel::followSelectedProfile,
+                        onOpenFollowers = {
+                            viewModel.openFollowers()
+                            navController.navigate(AppRoute.FollowList.name)
+                        },
+                        onOpenFollowing = {
+                            viewModel.openFollowing()
+                            navController.navigate(AppRoute.FollowList.name)
+                        },
+                        onOpenYesGiven = {
+                            viewModel.openYesGiven()
+                            navController.navigate(AppRoute.VoteHistory.name)
+                        },
+                        onOpenNoGiven = {
+                            viewModel.openNoGiven()
+                            navController.navigate(AppRoute.VoteHistory.name)
+                        },
+                        onEditProfile = {
+                            viewModel.startEditProfile()
+                            navController.navigate(AppRoute.EditProfile.name)
+                        },
+                        onOpenPost = { postId ->
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
+                            navController.navigate(AppRoute.PostDetail.name)
+                        },
+                        onLogOut = {
+                            viewModel.signOut()
+                            navController.navigate(AppRoute.Auth.name) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
             }
             composable(AppRoute.Activity.name) {
-                ActivityScreen()
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    ActivityScreen(
+                        state = viewModel.activityUiState,
+                        onOpenProfile = { profileId ->
+                            viewModel.openPersonProfile(profileId)
+                            navController.navigate(AppRoute.Profile.name)
+                        },
+                        onOpenPost = { postId ->
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Activity.name)
+                            navController.navigate(AppRoute.PostDetail.name)
+                        },
+                    )
+                }
             }
             composable(AppRoute.PostDetail.name) {
                 PostDetailScreen(
                     state = viewModel.postDetailUiState,
-                    onBack = { navController.popBackStack() },
+                    onBack = {
+                        val backRoute = when (viewModel.postDetailUiState.fromRoute) {
+                            AppRoute.Search.name -> AppRoute.Search.name
+                            AppRoute.Profile.name -> AppRoute.Profile.name
+                            AppRoute.VoteHistory.name -> AppRoute.VoteHistory.name
+                            AppRoute.Activity.name -> AppRoute.Activity.name
+                            else -> null
+                        }
+                        if (backRoute != null) {
+                            navController.navigate(backRoute) {
+                                popUpTo(AppRoute.PostDetail.name) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
+                    onOpenProfile = {
+                        viewModel.openPostAuthorProfile()
+                        navController.navigate(AppRoute.Profile.name)
+                    },
+                    onToggleKeep = viewModel::toggleKeepCurrentPost,
                 )
             }
             composable(AppRoute.FollowList.name) {
-                FollowListScreen(
-                    state = viewModel.followListUiState,
-                    onBack = { navController.popBackStack() },
-                    onOpenPerson = { profileId ->
-                        viewModel.openPersonProfile(profileId)
-                        navController.navigate(AppRoute.Profile.name)
-                    },
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    FollowListScreen(
+                        state = viewModel.followListUiState,
+                        onBack = { navController.popBackStack() },
+                        onOpenPerson = { profileId ->
+                            viewModel.openPersonProfile(profileId)
+                            navController.navigate(AppRoute.Profile.name)
+                        },
+                    )
+                }
             }
             composable(AppRoute.VoteHistory.name) {
-                VoteHistoryScreen(
-                    state = viewModel.voteHistoryUiState,
-                    onBack = { navController.popBackStack() },
-                    onOpenPost = { postId ->
-                        viewModel.openPostDetail(postId)
-                        navController.navigate(AppRoute.PostDetail.name)
-                    },
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    VoteHistoryScreen(
+                        state = viewModel.voteHistoryUiState,
+                        onBack = { navController.popBackStack() },
+                        onOpenPost = { postId ->
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
+                            navController.navigate(AppRoute.PostDetail.name)
+                        },
+                    )
+                }
             }
             composable(AppRoute.EditProfile.name) {
-                EditProfileScreen(
-                    state = viewModel.editProfileFormState,
-                    onBack = { navController.popBackStack() },
-                    onUsernameChange = viewModel::updateEditUsername,
-                    onDisplayNameChange = viewModel::updateEditDisplayName,
-                    onBioChange = viewModel::updateEditBio,
-                    onSave = viewModel::submitEditProfile,
-                )
+                if (viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    EditProfileScreen(
+                        state = viewModel.editProfileFormState,
+                        onBack = { navController.popBackStack() },
+                        onUsernameChange = viewModel::updateEditUsername,
+                        onDisplayNameChange = viewModel::updateEditDisplayName,
+                        onBioChange = viewModel::updateEditBio,
+                        onPickPhoto = {
+                        editAvatarPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    onRemovePhoto = viewModel::markEditAvatarForRemoval,
+                    onKeepCurrentPhoto = viewModel::cancelEditAvatarRemoval,
+                    onSave = { viewModel.submitEditProfile(context.contentResolver) },
+                    )
+                }
             }
         }
     }

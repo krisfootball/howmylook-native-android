@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.auth.AuthFormState
 import com.howmylook.app.data.auth.AuthMode
 import com.howmylook.app.data.auth.SessionState
@@ -694,7 +695,6 @@ fun ProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
 
         if (state.loading) {
             Text("Loading profile...", color = SoftText)
@@ -799,59 +799,58 @@ fun ProfileScreen(
                 if (state.posts.isEmpty()) {
                     Text("No published looks yet.", color = SoftText)
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.height(420.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(state.posts) { post ->
-                            Surface(
-                                modifier = Modifier.clickable { onOpenPost(post.id) },
-                                shape = RoundedCornerShape(16.dp),
-                                color = PinkSurface,
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(164.dp)
-                                ) {
-                                    if (!post.imageUrl.isNullOrBlank()) {
-                                        AsyncImage(
-                                            model = post.imageUrl,
-                                            contentDescription = post.occasion,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-                                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        state.posts.chunked(3).forEachIndexed { rowIndex, row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                row.forEachIndexed { columnIndex, post ->
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    colors = listOf(Color.Transparent, Color(0xB3000000)),
-                                                )
-                                            )
-                                    )
-                                    Column(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomStart)
-                                            .padding(8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            .weight(1f)
+                                            .height(180.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .clickable { onOpenPost(post.id) },
                                     ) {
-                                        Text(
-                                            post.occasion,
-                                            color = Color.White,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        Text(
-                                            "${post.yesCount} yes · ${post.noCount} no",
-                                            color = Color.White.copy(alpha = 0.86f),
-                                            style = MaterialTheme.typography.labelSmall,
-                                        )
+                                        if (!post.imageUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = post.imageUrl,
+                                                contentDescription = post.occasion,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        } else {
+                                            val colors = when ((rowIndex + columnIndex) % 3) {
+                                                0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                                                1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                                                else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
+                                            }
+                                            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
+                                        }
+                                        if (post.keepForever) {
+                                            Text(
+                                                "📌",
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(8.dp),
+                                                color = Color.White,
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomStart)
+                                                .fillMaxWidth()
+                                                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                                .padding(8.dp),
+                                        ) {
+                                            Text(
+                                                "${post.yesCount} yes · ${post.noCount} no",
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
                                     }
+                                }
+                                repeat(3 - row.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -881,7 +880,12 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 }
 
 @Composable
-fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
+fun PostDetailScreen(
+    state: PostDetailUiState,
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit,
+    onToggleKeep: (() -> Unit)? = null,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -891,7 +895,7 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
             AsyncImage(
                 model = state.imageUrls.first(),
                 contentDescription = state.occasion,
-                contentScale = ContentScale.Fit,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -901,7 +905,7 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0x73000000), Color.Transparent, Color(0xD9000000)),
+                        colors = listOf(Color(0x24000000), Color.Transparent, Color(0xC4000000)),
                     )
                 )
         )
@@ -909,27 +913,54 @@ fun PostDetailScreen(state: PostDetailUiState, onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Button(
                     onClick = onBack,
                     shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.18f), contentColor = Color.White),
-                ) { Text("Back") }
-                if (state.loading) {
-                    Text("Loading post...", color = Color.White.copy(alpha = 0.8f))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
+                ) {
+                    Text("Back", fontWeight = FontWeight.SemiBold)
                 }
-                state.error?.let { Text(it, color = Color(0xFFFDA4AF)) }
+
+                Button(
+                    onClick = onOpenProfile,
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x806C7680), contentColor = Color.White),
+                ) {
+                    Text("Profile", fontWeight = FontWeight.SemiBold)
+                }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.isOwnPost && onToggleKeep != null) {
+                    Button(
+                        onClick = onToggleKeep,
+                        enabled = !state.loading,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.92f), contentColor = Color(0xFF020617)),
+                    ) {
+                        Text(if (state.keepForever) "Unkeep photo" else "Keep photo")
+                    }
+                }
+                if (state.keepForever) {
+                    Text("Pinned on profile", color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                }
                 Text(state.authorName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                Text(state.occasion, color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.titleMedium)
-                Text("Yes ${state.yesCount} · No ${state.noCount}", color = Color.White.copy(alpha = 0.72f))
-                if (state.imageUrls.size > 1) {
-                    Text("${state.imageUrls.size} photos", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+                Text("O C C A S I O N", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text("${state.yesCount} yes    ${state.noCount} no", color = Color.White.copy(alpha = 0.84f), style = MaterialTheme.typography.bodyMedium)
+                if (state.actionMessage.isNotBlank()) {
+                    Text(state.actionMessage, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                }
+                state.error?.let {
+                    Text(it, color = Color(0xFFFDA4AF), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -950,7 +981,6 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
         Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
             Text("Loading ${state.title.lowercase()}...", color = SoftText)
@@ -992,7 +1022,6 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
         Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
             Text("Loading ${state.title.lowercase()}...", color = SoftText)
@@ -1037,6 +1066,9 @@ fun EditProfileScreen(
     onUsernameChange: (String) -> Unit,
     onDisplayNameChange: (String) -> Unit,
     onBioChange: (String) -> Unit,
+    onPickPhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    onKeepCurrentPhoto: () -> Unit,
     onSave: () -> Unit,
 ) {
     Column(
@@ -1051,10 +1083,86 @@ fun EditProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BackPill(onBack)
         Text("Edit profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    if (state.removeAvatar) {
+                        Box(
+                            modifier = Modifier
+                                .size(78.dp)
+                                .background(Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("✨") }
+                    } else if (!state.selectedAvatarUri.isNullOrBlank()) {
+                        AsyncImage(
+                            model = state.selectedAvatarUri,
+                            contentDescription = "Selected profile photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(78.dp)
+                                .clip(CircleShape),
+                        )
+                    } else if (!state.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = state.avatarUrl,
+                            contentDescription = "Current profile photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(78.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(78.dp)
+                                .background(Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("✨") }
+                    }
+
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Profile photo", fontWeight = FontWeight.SemiBold)
+                        Text("Upload a square photo if you can. Max 5 MB. This is optional.", color = SoftText, style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = onPickPhoto,
+                                enabled = !state.loading && !state.saving,
+                                shape = RoundedCornerShape(999.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                            ) {
+                                Text(
+                                    when {
+                                        !state.selectedAvatarUri.isNullOrBlank() -> "Change selected photo"
+                                        !state.avatarUrl.isNullOrBlank() && !state.removeAvatar -> "Change photo"
+                                        else -> "Choose photo"
+                                    }
+                                )
+                            }
+                            if ((!state.avatarUrl.isNullOrBlank() || !state.selectedAvatarUri.isNullOrBlank()) && !state.removeAvatar) {
+                                Button(
+                                    onClick = onRemovePhoto,
+                                    enabled = !state.loading && !state.saving,
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.onSurface),
+                                ) {
+                                    Text("Remove photo")
+                                }
+                            }
+                            if (state.removeAvatar) {
+                                Button(
+                                    onClick = onKeepCurrentPhoto,
+                                    enabled = !state.loading && !state.saving,
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.onSurface),
+                                ) {
+                                    Text("Keep current photo")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = state.username,
                     onValueChange = onUsernameChange,
@@ -1117,7 +1225,7 @@ private fun BackPill(onBack: () -> Unit) {
 }
 
 @Composable
-fun ActivityScreen() {
+fun ActivityScreen(state: ActivityUiState, onOpenProfile: (String) -> Unit, onOpenPost: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1131,13 +1239,39 @@ fun ActivityScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Activity", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Activity is coming next.", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "This placeholder keeps the bottom navigation complete while the real activity feed is wired.",
-                    color = SoftText,
-                )
+        if (state.loading) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                Text("Loading activity...", modifier = Modifier.padding(16.dp), color = SoftText)
+            }
+        }
+        state.error?.let {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2), shadowElevation = 1.dp) {
+                Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
+            }
+        }
+        if (!state.loading && state.error == null && state.items.isEmpty()) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                Text("No activity yet.", modifier = Modifier.padding(16.dp), color = SoftText)
+            }
+        }
+        state.items.forEach { item ->
+            Surface(
+                modifier = Modifier.clickable(enabled = item.targetProfileId != null || item.targetPostId != null) {
+                    when {
+                        item.targetProfileId != null -> onOpenProfile(item.targetProfileId)
+                        item.targetPostId != null -> onOpenPost(item.targetPostId)
+                    }
+                },
+                shape = RoundedCornerShape(22.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(item.title, fontWeight = FontWeight.SemiBold)
+                    if (item.subtitle.isNotBlank()) {
+                        Text(item.subtitle, color = SoftText)
+                    }
+                }
             }
         }
     }

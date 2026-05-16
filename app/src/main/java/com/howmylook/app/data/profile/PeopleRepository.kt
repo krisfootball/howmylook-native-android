@@ -15,14 +15,17 @@ private data class PersonProfileDto(
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("bio") val bio: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
-    @SerialName("total_yes_given") val totalYesGiven: Int? = null,
-    @SerialName("total_no_given") val totalNoGiven: Int? = null,
 )
 
 @Serializable
 private data class FollowRowDto(
-    @SerialName("follower_id") val followerId: String,
-    @SerialName("following_id") val followingId: String,
+    @SerialName("follower_id") val followerId: String? = null,
+    @SerialName("following_id") val followingId: String? = null,
+)
+
+@Serializable
+private data class VoteCountRowDto(
+    @SerialName("post_id") val postId: String? = null,
 )
 
 class PeopleRepository {
@@ -36,7 +39,7 @@ class PeopleRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val profile = client.from("profiles")
-                .select(columns = Columns.list("id", "username", "display_name", "bio", "avatar_url", "total_yes_given", "total_no_given")) {
+                .select(columns = Columns.list("id", "username", "display_name", "bio", "avatar_url")) {
                     filter { eq("id", profileId) }
                     limit(1)
                 }
@@ -66,6 +69,26 @@ class PeopleRepository {
                 }
                 .decodeSingleOrNull<FollowRowDto>()
 
+            val yesGivenCount = client.from("votes")
+                .select(columns = Columns.list("post_id")) {
+                    filter {
+                        eq("user_id", profileId)
+                        eq("value", "yes")
+                    }
+                }
+                .decodeList<VoteCountRowDto>()
+                .size
+
+            val noGivenCount = client.from("votes")
+                .select(columns = Columns.list("post_id")) {
+                    filter {
+                        eq("user_id", profileId)
+                        eq("value", "no")
+                    }
+                }
+                .decodeList<VoteCountRowDto>()
+                .size
+
             val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }
 
             ProfileUiState(
@@ -77,8 +100,8 @@ class PeopleRepository {
                 avatarUrl = profile.avatarUrl,
                 followers = followers.size,
                 following = following.size,
-                yesGiven = profile.totalYesGiven ?: 0,
-                noGiven = profile.totalNoGiven ?: 0,
+                yesGiven = yesGivenCount,
+                noGiven = noGivenCount,
                 posts = posts,
                 isOwnProfile = viewerUserId == profileId,
                 isFollowing = viewerFollow != null,

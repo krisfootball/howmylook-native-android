@@ -16,6 +16,7 @@ data class ExploreLookCard(
     val yesCount: Int = 0,
     val noCount: Int = 0,
     val imageCount: Int = 1,
+    val keepForever: Boolean = false,
 )
 
 data class SearchUiState(

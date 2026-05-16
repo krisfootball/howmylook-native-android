@@ -7,6 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.howmylook.app.data.SupabaseConfig
+import com.howmylook.app.data.activity.ActivityRepository
+import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.auth.AuthBootstrapRepository
 import com.howmylook.app.data.auth.AuthFormState
 import com.howmylook.app.data.auth.AuthMode
@@ -33,6 +35,7 @@ import com.howmylook.app.data.search.ExploreProfileCard
 import com.howmylook.app.data.search.SearchRepository
 import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadRepository
+import com.howmylook.app.data.upload.loadUploadPhotoPayload
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.AppRoute
@@ -43,6 +46,7 @@ class AppViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val authBootstrapRepository = AuthBootstrapRepository()
     private val feedRepository = FeedRepository()
+    private val activityRepository = ActivityRepository()
     private val profileRepository = ProfileRepository()
     private val peopleRepository = PeopleRepository()
     private val followListRepository = FollowListRepository()
@@ -73,6 +77,9 @@ class AppViewModel : ViewModel() {
         private set
 
     var homeUiState by mutableStateOf(HomeUiState())
+        private set
+
+    var activityUiState by mutableStateOf(ActivityUiState())
         private set
 
     var authFormState by mutableStateOf(AuthFormState())
@@ -186,6 +193,7 @@ class AppViewModel : ViewModel() {
                     loadProfile()
                     loadSearch()
                     loadRatingQueue()
+                    loadActivity()
                 }
             }
         }
@@ -281,6 +289,7 @@ class AppViewModel : ViewModel() {
                     editProfileFormState = EditProfileFormState()
                     profileUiState = ProfileUiState()
                     searchUiState = SearchUiState()
+                    activityUiState = ActivityUiState()
                     uploadUiState = UploadUiState()
                     postDetailUiState = PostDetailUiState()
                     authFormState = authFormState.copy(password = "", message = "", error = null, loading = false)
@@ -330,8 +339,15 @@ class AppViewModel : ViewModel() {
 
     private fun loadProfile() {
         val userId = currentUserId ?: return
+        val selectedProfileId = selectedPersonProfileId
         viewModelScope.launch {
-            profileRepository.loadOwnProfile(supabaseConfig, userId)
+            val result = if (selectedProfileId != null) {
+                peopleRepository.loadPersonProfile(supabaseConfig, userId, selectedProfileId)
+            } else {
+                profileRepository.loadOwnProfile(supabaseConfig, userId)
+            }
+
+            result
                 .onSuccess { state ->
                     profileUiState = state
                 }
@@ -461,17 +477,50 @@ class AppViewModel : ViewModel() {
         }
     }
 
-    fun openPostDetail(postId: String) {
+    fun openPostDetail(postId: String, fromRoute: String = "") {
         viewModelScope.launch {
-            postDetailUiState = postDetailUiState.copy(loading = true, error = null)
-            postRepository.loadPostDetail(supabaseConfig, postId)
+            postDetailUiState = postDetailUiState.copy(loading = true, error = null, fromRoute = fromRoute)
+            postRepository.loadPostDetail(supabaseConfig, postId, currentUserId)
                 .onSuccess { state ->
-                    postDetailUiState = state
+                    postDetailUiState = state.copy(fromRoute = fromRoute)
                 }
                 .onFailure { error ->
                     postDetailUiState = postDetailUiState.copy(
                         loading = false,
                         error = error.message ?: "Unable to load post.",
+                    )
+                }
+        }
+    }
+
+    fun openPostAuthorProfile() {
+        val ownerId = postDetailUiState.ownerId ?: return
+        openPersonProfile(ownerId)
+    }
+
+    fun toggleKeepCurrentPost() {
+        val ownerUserId = currentUserId ?: return
+        val postId = postDetailUiState.postId ?: return
+        if (!postDetailUiState.isOwnPost) return
+
+        val nextKeepState = !postDetailUiState.keepForever
+        viewModelScope.launch {
+            postDetailUiState = postDetailUiState.copy(loading = true, error = null, actionMessage = "")
+            postRepository.toggleKeepForever(supabaseConfig, postId, ownerUserId, nextKeepState)
+                .onSuccess { message ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        keepForever = nextKeepState,
+                        actionMessage = message,
+                        error = null,
+                    )
+                    loadProfile()
+                    loadSearch()
+                }
+                .onFailure { error ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to update keep setting.",
                     )
                 }
         }
@@ -506,6 +555,23 @@ class AppViewModel : ViewModel() {
                     followListUiState = followListUiState.copy(
                         loading = false,
                         error = error.message ?: "Unable to load following.",
+                    )
+                }
+        }
+    }
+
+    fun loadActivity() {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            activityUiState = activityUiState.copy(loading = true, error = null)
+            activityRepository.load(supabaseConfig, userId)
+                .onSuccess { state ->
+                    activityUiState = state
+                }
+                .onFailure { error ->
+                    activityUiState = activityUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to load activity.",
                     )
                 }
         }
@@ -576,7 +642,35 @@ class AppViewModel : ViewModel() {
         editProfileFormState = editProfileFormState.copy(bio = value, error = null, message = "")
     }
 
-    fun submitEditProfile() {
+    fun setEditAvatar(uriString: String?, displayName: String? = null) {
+        editProfileFormState = editProfileFormState.copy(
+            selectedAvatarUri = uriString,
+            selectedAvatarName = displayName,
+            removeAvatar = false,
+            error = null,
+            message = if (uriString.isNullOrBlank()) "" else "Selected ${displayName ?: "new photo"}",
+        )
+    }
+
+    fun markEditAvatarForRemoval() {
+        editProfileFormState = editProfileFormState.copy(
+            selectedAvatarUri = null,
+            selectedAvatarName = null,
+            removeAvatar = true,
+            error = null,
+            message = "Profile photo will be removed when you save.",
+        )
+    }
+
+    fun cancelEditAvatarRemoval() {
+        editProfileFormState = editProfileFormState.copy(
+            removeAvatar = false,
+            error = null,
+            message = "Photo removal canceled.",
+        )
+    }
+
+    fun submitEditProfile(contentResolver: ContentResolver) {
         val userId = currentUserId ?: return
         viewModelScope.launch {
             editProfileFormState = editProfileFormState.copy(saving = true, error = null, message = "")
@@ -658,7 +752,7 @@ class AppViewModel : ViewModel() {
                     ratingQueue = nextQueue
                     currentCard = nextQueue.firstOrNull()
                     val nextMessage = if (nextUnlockVotes >= AppConfig.unlockVoteCount) {
-                        "Unlock complete. Home is ready."
+                        ""
                     } else {
                         "${if (value == "yes") "Yes" else "No"} saved. ${AppConfig.unlockVoteCount - nextUnlockVotes} ratings left."
                     }
