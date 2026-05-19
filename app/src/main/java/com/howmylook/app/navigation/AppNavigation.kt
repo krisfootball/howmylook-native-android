@@ -72,7 +72,13 @@ fun AppNavigation(viewModel: AppViewModel) {
         bottomNavItems
     }
 
-    val showBottomBar = currentRoute in availableBottomNavItems.map { it.route.name }
+    val bottomBarRoutes = availableBottomNavItems.map { it.route.name } + listOf(
+        AppRoute.PostDetail.name,
+        AppRoute.FollowList.name,
+        AppRoute.VoteHistory.name,
+        AppRoute.EditProfile.name,
+    )
+    val showBottomBar = currentRoute in bottomBarRoutes
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -287,10 +293,6 @@ fun AppNavigation(viewModel: AppViewModel) {
                         } else {
                             navController.popBackStack()
                         }
-                    },
-                    onOpenProfile = {
-                        viewModel.openPostAuthorProfile()
-                        navController.navigate(AppRoute.Profile.name)
                     },
                     onToggleKeep = viewModel::toggleKeepCurrentPost,
                 )

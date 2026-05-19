@@ -898,7 +898,6 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 fun PostDetailScreen(
     state: PostDetailUiState,
     onBack: () -> Unit,
-    onOpenProfile: () -> Unit,
     onToggleKeep: (() -> Unit)? = null,
 ) {
     Box(
@@ -928,28 +927,21 @@ fun PostDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 18.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(
                     onClick = onBack,
+                    modifier = Modifier.height(44.dp),
                     shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
                 ) {
                     Text("Back", fontWeight = FontWeight.SemiBold)
-                }
-
-                Button(
-                    onClick = onOpenProfile,
-                    shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x806C7680), contentColor = Color.White),
-                ) {
-                    Text("Profile", fontWeight = FontWeight.SemiBold)
                 }
             }
 
