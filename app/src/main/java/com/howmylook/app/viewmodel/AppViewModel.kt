@@ -524,7 +524,7 @@ class AppViewModel : ViewModel() {
                     )
                     loadProfile()
                     loadSearch()
-                    loadHome()
+                    loadRatingQueue()
                 }
                 .onFailure { error ->
                     postDetailUiState = postDetailUiState.copy(
@@ -551,7 +551,7 @@ class AppViewModel : ViewModel() {
                     )
                     loadProfile()
                     loadSearch()
-                    loadHome()
+                    loadRatingQueue()
                 }
                 .onFailure { error ->
                     postDetailUiState = postDetailUiState.copy(
