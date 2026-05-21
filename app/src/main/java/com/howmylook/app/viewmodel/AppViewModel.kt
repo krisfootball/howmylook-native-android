@@ -21,6 +21,7 @@ import com.howmylook.app.data.feed.HomeUiState
 import com.howmylook.app.data.feed.RatingCard
 import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
+import com.howmylook.app.data.post.EditPostRepository
 import com.howmylook.app.data.post.PostRepository
 import com.howmylook.app.data.profile.EditProfileFormState
 import com.howmylook.app.data.profile.EditProfileRepository
@@ -53,6 +54,7 @@ class AppViewModel : ViewModel() {
     private val voteHistoryRepository = VoteHistoryRepository()
     private val editProfileRepository = EditProfileRepository()
     private val postRepository = PostRepository()
+    private val editPostRepository = EditPostRepository()
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
     private val supabaseConfig = SupabaseConfig.fromBuildConfig()
@@ -457,6 +459,11 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun openSelectedOwnerProfile() {
+        val profileId = selectedPersonProfileId ?: return
+        openPersonProfile(profileId)
+    }
+
     fun followSelectedProfile() {
         val viewerUserId = currentUserId ?: return
         val profileId = selectedPersonProfileId ?: return
@@ -496,6 +503,63 @@ class AppViewModel : ViewModel() {
     fun openPostAuthorProfile() {
         val ownerId = postDetailUiState.ownerId ?: return
         openPersonProfile(ownerId)
+    }
+
+
+
+    fun editCurrentPostOccasion(occasion: String) {
+        val ownerUserId = currentUserId ?: return
+        val postId = postDetailUiState.postId ?: return
+        if (!postDetailUiState.isOwnPost) return
+
+        viewModelScope.launch {
+            postDetailUiState = postDetailUiState.copy(loading = true, error = null, actionMessage = "")
+            editPostRepository.updateOccasion(supabaseConfig, postId, ownerUserId, occasion)
+                .onSuccess { message ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        occasion = occasion.ifBlank { "No occasion added yet" },
+                        actionMessage = message,
+                        error = null,
+                    )
+                    loadProfile()
+                    loadSearch()
+                    loadHome()
+                }
+                .onFailure { error ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to update photo.",
+                    )
+                }
+        }
+    }
+
+    fun deleteCurrentPost() {
+        val ownerUserId = currentUserId ?: return
+        val postId = postDetailUiState.postId ?: return
+        if (!postDetailUiState.isOwnPost) return
+
+        viewModelScope.launch {
+            postDetailUiState = postDetailUiState.copy(loading = true, error = null, actionMessage = "")
+            postRepository.deleteOwnPost(supabaseConfig, postId, ownerUserId)
+                .onSuccess { message ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        actionMessage = message,
+                        error = null,
+                    )
+                    loadProfile()
+                    loadSearch()
+                    loadHome()
+                }
+                .onFailure { error ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to delete photo.",
+                    )
+                }
+        }
     }
 
     fun toggleKeepCurrentPost() {

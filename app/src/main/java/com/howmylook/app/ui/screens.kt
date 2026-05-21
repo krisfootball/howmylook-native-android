@@ -23,11 +23,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -899,8 +899,12 @@ fun PostDetailScreen(
     state: PostDetailUiState,
     onBack: () -> Unit,
     onToggleKeep: (() -> Unit)? = null,
+    onDeletePost: (() -> Unit)? = null,
+    onEditOccasion: ((String) -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var editExpanded by remember { mutableStateOf(false) }
+    var editOccasion by remember(state.occasion) { mutableStateOf(state.occasion) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -969,13 +973,20 @@ fun PostDetailScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Edit photo", color = SoftText) },
-                                onClick = { menuExpanded = false },
-                                enabled = false,
+                                onClick = {
+                                    menuExpanded = false
+                                    editOccasion = state.occasion
+                                    editExpanded = true
+                                },
+                                enabled = onEditOccasion != null,
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete photo", color = ErrorText) },
-                                onClick = { menuExpanded = false },
-                                enabled = false,
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeletePost?.invoke()
+                                },
+                                enabled = onDeletePost != null,
                             )
                         }
                     }
@@ -983,6 +994,40 @@ fun PostDetailScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (editExpanded) {
+                    Surface(shape = RoundedCornerShape(22.dp), color = Color.White.copy(alpha = 0.96f), shadowElevation = 2.dp) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Edit occasion", fontWeight = FontWeight.SemiBold)
+                            OutlinedTextField(
+                                value = editOccasion,
+                                onValueChange = { editOccasion = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Occasion") },
+                                singleLine = true,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Button(
+                                    onClick = {
+                                        editExpanded = false
+                                        onEditOccasion?.invoke(editOccasion)
+                                    },
+                                    enabled = !state.loading,
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                                ) {
+                                    Text("Save")
+                                }
+                                Button(
+                                    onClick = { editExpanded = false },
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                                ) {
+                                    Text("Cancel")
+                                }
+                            }
+                        }
+                    }
+                }
                 if (state.keepForever) {
                     Text("Pinned on profile", color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 }

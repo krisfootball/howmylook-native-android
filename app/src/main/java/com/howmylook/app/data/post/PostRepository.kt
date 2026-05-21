@@ -4,6 +4,7 @@ import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -29,6 +30,11 @@ private data class PostAuthorDto(
 @Serializable
 private data class KeptPostDto(
     @SerialName("id") val id: String,
+)
+
+@Serializable
+private data class PostImageDto(
+    @SerialName("image_url") val imageUrl: String? = null,
 )
 
 class PostRepository {
@@ -102,6 +108,39 @@ class PostRepository {
             } else {
                 "Photo will expire normally again."
             }
+        }
+    }
+
+    suspend fun deleteOwnPost(config: SupabaseConfig, postId: String, ownerUserId: String): Result<String> {
+        return runCatching {
+            val client = SupabaseProvider.create(config)
+
+            val postImages = client.from("post_images")
+                .select(columns = Columns.list("image_url")) {
+                    filter { eq("post_id", postId) }
+                }
+                .decodeList<PostImageDto>()
+
+            client.from("post_images").delete {
+                filter { eq("post_id", postId) }
+            }
+
+            client.from("posts").delete {
+                filter {
+                    eq("id", postId)
+                    eq("user_id", ownerUserId)
+                }
+            }
+
+            val bucket = client.storage.from("post-images")
+            postImages.mapNotNull { it.imageUrl }
+                .mapNotNull { url -> url.substringAfter("/post-images/", "").takeIf { it.isNotBlank() } }
+                .distinct()
+                .forEach { path ->
+                    runCatching { bucket.delete(path) }
+                }
+
+            "Photo deleted."
         }
     }
 }

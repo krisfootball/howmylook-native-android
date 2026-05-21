@@ -130,12 +130,19 @@ fun AppNavigation(viewModel: AppViewModel) {
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
-                                    navController.navigate(item.route.name) {
-                                        popUpTo(navController.graph.startDestinationId) {
-                                            saveState = true
+                                    if (item.route == AppRoute.Profile && viewModel.postDetailUiState.fromRoute == AppRoute.Profile.name) {
+                                        navController.navigate(AppRoute.Profile.name) {
+                                            popUpTo(AppRoute.PostDetail.name) { inclusive = true }
+                                            launchSingleTop = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    } else {
+                                        navController.navigate(item.route.name) {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
                                 },
                                 icon = item.icon,
@@ -296,6 +303,8 @@ fun AppNavigation(viewModel: AppViewModel) {
                         }
                     },
                     onToggleKeep = viewModel::toggleKeepCurrentPost,
+                    onDeletePost = viewModel::deleteCurrentPost,
+                    onEditOccasion = viewModel::editCurrentPostOccasion,
                 )
             }
             composable(AppRoute.FollowList.name) {
