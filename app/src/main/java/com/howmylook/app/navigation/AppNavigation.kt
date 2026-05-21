@@ -3,6 +3,7 @@ package com.howmylook.app.navigation
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddBox
@@ -21,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -158,7 +158,7 @@ fun AppNavigation(viewModel: AppViewModel) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(if (showBottomBar) innerPadding else androidx.compose.foundation.layout.PaddingValues(0.dp)),
+            modifier = Modifier.padding(if (showBottomBar) innerPadding else PaddingValues(0.dp)),
         ) {
             composable(AppRoute.Splash.name) { SplashScreen() }
             composable(AppRoute.Auth.name) {
@@ -244,7 +244,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                             navController.navigate(AppRoute.EditProfile.name)
                         },
                         onOpenPost = { postId ->
-                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.VoteHistory.name)
                             navController.navigate(AppRoute.PostDetail.name)
                         },
                         onLogOut = {
@@ -319,7 +319,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                         state = viewModel.voteHistoryUiState,
                         onBack = { navController.popBackStack() },
                         onOpenPost = { postId ->
-                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.VoteHistory.name)
                             navController.navigate(AppRoute.PostDetail.name)
                         },
                     )

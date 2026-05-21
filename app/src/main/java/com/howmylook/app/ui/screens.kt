@@ -900,6 +900,7 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     onToggleKeep: (() -> Unit)? = null,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -932,7 +933,7 @@ fun PostDetailScreen(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(
@@ -943,19 +944,45 @@ fun PostDetailScreen(
                 ) {
                     Text("Back", fontWeight = FontWeight.SemiBold)
                 }
+
+                if (state.isOwnPost && onToggleKeep != null) {
+                    Box {
+                        Button(
+                            onClick = { menuExpanded = true },
+                            modifier = Modifier.height(44.dp),
+                            shape = RoundedCornerShape(999.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
+                        ) {
+                            Text("⋯", fontWeight = FontWeight.Bold)
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                            modifier = Modifier.background(Color.White, RoundedCornerShape(18.dp))
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (state.keepForever) "Unkeep photo" else "Keep photo") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onToggleKeep()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Edit photo", color = SoftText) },
+                                onClick = { menuExpanded = false },
+                                enabled = false,
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete photo", color = ErrorText) },
+                                onClick = { menuExpanded = false },
+                                enabled = false,
+                            )
+                        }
+                    }
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.isOwnPost && onToggleKeep != null) {
-                    Button(
-                        onClick = onToggleKeep,
-                        enabled = !state.loading,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.92f), contentColor = Color(0xFF020617)),
-                    ) {
-                        Text(if (state.keepForever) "Unkeep photo" else "Keep photo")
-                    }
-                }
                 if (state.keepForever) {
                     Text("Pinned on profile", color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 }
