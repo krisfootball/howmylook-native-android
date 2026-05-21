@@ -245,7 +245,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                             navController.navigate(AppRoute.EditProfile.name)
                         },
                         onOpenPost = { postId ->
-                            viewModel.openPostDetail(postId, fromRoute = AppRoute.VoteHistory.name)
+                            viewModel.openPostDetail(postId, fromRoute = AppRoute.Profile.name)
                             navController.navigate(AppRoute.PostDetail.name)
                         },
                         onLogOut = {
