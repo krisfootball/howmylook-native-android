@@ -671,7 +671,7 @@ class AppViewModel : ViewModel() {
     }
 
     fun openYesGiven() {
-        val userId = currentUserId ?: return
+        val userId = selectedPersonProfileId ?: currentUserId ?: return
         viewModelScope.launch {
             voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Yes given", error = null)
             voteHistoryRepository.load(supabaseConfig, userId, "yes")
@@ -689,7 +689,7 @@ class AppViewModel : ViewModel() {
     }
 
     fun openNoGiven() {
-        val userId = currentUserId ?: return
+        val userId = selectedPersonProfileId ?: currentUserId ?: return
         viewModelScope.launch {
             voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "No given", error = null)
             voteHistoryRepository.load(supabaseConfig, userId, "no")
