@@ -72,6 +72,16 @@ private val AccentPink = Color(0xFFDB2777)
 private val DarkButton = Color(0xFF020617)
 
 @Composable
+private fun appTextFieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color(0xFF0F172A),
+    unfocusedTextColor = Color(0xFF0F172A),
+    disabledTextColor = Color(0xFF475569),
+    focusedLabelColor = SoftText,
+    unfocusedLabelColor = SoftText,
+    cursorColor = AccentPink,
+)
+
+@Composable
 fun SplashScreen() {
     Box(
         modifier = Modifier
@@ -178,6 +188,7 @@ fun AuthScreen(
                 }
 
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.email,
                     onValueChange = onEmailChange,
                     label = { Text("Email") },
@@ -189,6 +200,7 @@ fun AuthScreen(
                 )
 
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.password,
                     onValueChange = onPasswordChange,
                     label = { Text("Password") },
@@ -305,6 +317,7 @@ fun UsernameScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.username,
                     onValueChange = onUsernameChange,
                     label = { Text("Username") },
@@ -315,6 +328,7 @@ fun UsernameScreen(
                 )
 
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.displayName,
                     onValueChange = onDisplayNameChange,
                     label = { Text("Display name") },
@@ -636,6 +650,7 @@ fun UploadScreen(
         }
 
         OutlinedTextField(
+            colors = appTextFieldColors(),
             value = state.occasion,
             onValueChange = onOccasionChange,
             label = { Text("Occasion") },
@@ -863,21 +878,14 @@ fun ProfileScreen(
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
                                 if (post.keepForever) {
-                                    Box(
+                                    Text(
+                                        "📌",
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .padding(top = 6.dp, end = 6.dp)
-                                            .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(999.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            "PIN",
-                                            color = Color.Black,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
+                                            .padding(top = 6.dp, end = 6.dp),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
                                 }
                                 Box(
                                     modifier = Modifier
@@ -1271,6 +1279,7 @@ fun EditProfileScreen(
                 }
 
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.username,
                     onValueChange = onUsernameChange,
                     label = { Text("Username") },
@@ -1280,6 +1289,7 @@ fun EditProfileScreen(
                     shape = RoundedCornerShape(16.dp),
                 )
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.displayName,
                     onValueChange = onDisplayNameChange,
                     label = { Text("Display name") },
@@ -1289,6 +1299,7 @@ fun EditProfileScreen(
                     shape = RoundedCornerShape(16.dp),
                 )
                 OutlinedTextField(
+                    colors = appTextFieldColors(),
                     value = state.bio,
                     onValueChange = onBioChange,
                     label = { Text("Bio") },

@@ -46,6 +46,7 @@ class ProfilePostRepository {
                     yesCount = it.yesCount,
                     noCount = it.noCount,
                     imageCount = if (!it.imageUrl.isNullOrBlank()) 1 else 0,
+                    keepForever = it.keepForever == true,
                 )
             }
         }
