@@ -905,19 +905,23 @@ class AppViewModel : ViewModel() {
                     val nextQueue = ratingQueue.filterNot { it.id == card.id }
                     ratingQueue = nextQueue
                     currentCard = nextQueue.firstOrNull()
-                    val nextMessage = if (nextUnlockVotes >= AppConfig.unlockVoteCount) {
+                    val requiredRatings = minOf(AppConfig.unlockVoteCount, sessionState.availablePostCount.coerceAtLeast(0))
+                    val unlockedNow = nextUnlockVotes >= requiredRatings
+                    val remaining = (requiredRatings - nextUnlockVotes).coerceAtLeast(0)
+                    val nextMessage = if (unlockedNow) {
                         ""
                     } else {
-                        "${if (value == "yes") "Yes" else "No"} saved. ${AppConfig.unlockVoteCount - nextUnlockVotes} ratings left."
+                        "${if (value == "yes") "Yes" else "No"} saved. $remaining ratings left."
                     }
                     bootstrapMessage = nextMessage
                     sessionState = sessionState.copy(
+                        needsUnlockRatings = !unlockedNow,
                         unlockVotesCompleted = nextUnlockVotes,
                         bootstrapMessage = nextMessage,
                     )
                     homeUiState = homeUiState.copy(
                         isLoading = false,
-                        destination = if (nextUnlockVotes >= AppConfig.unlockVoteCount) HomeDestination.UNLOCKED_HOME else HomeDestination.LOCKED_HOME,
+                        destination = if (unlockedNow) HomeDestination.UNLOCKED_HOME else HomeDestination.LOCKED_HOME,
                         statusMessage = nextMessage,
                     )
                     loadSearch()
