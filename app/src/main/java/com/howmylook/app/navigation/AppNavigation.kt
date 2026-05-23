@@ -1,5 +1,8 @@
 package com.howmylook.app.navigation
 
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,7 +23,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -87,6 +92,7 @@ fun AppNavigation(viewModel: AppViewModel) {
         AppRoute.Profile.name,
     )
     val showBottomBar = currentRoute in bottomBarRoutes
+    val pendingCameraPhotoUri = remember { mutableStateOf<Uri?>(null) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -100,6 +106,16 @@ fun AppNavigation(viewModel: AppViewModel) {
             viewModel.setEditAvatar(uri?.toString())
         },
     )
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            val uri = pendingCameraPhotoUri.value
+            if (success && uri != null) {
+                viewModel.setSelectedUploadPhotos(listOf(uri.toString()))
+            }
+            pendingCameraPhotoUri.value = null
+        },
+    )
 
     LaunchedEffect(viewModel.uploadUiState.pickerLaunchNonce) {
         if (viewModel.uploadUiState.pickerLaunchNonce > 0) {
@@ -107,6 +123,18 @@ fun AppNavigation(viewModel: AppViewModel) {
         }
     }
 
+    LaunchedEffect(viewModel.uploadUiState.cameraLaunchNonce) {
+        if (viewModel.uploadUiState.cameraLaunchNonce > 0) {
+            val imageFile = File.createTempFile("howmylook-camera-", ".jpg", context.cacheDir)
+            val uri = FileProvider.getUriForFile(
+                context,
+                context.packageName + ".fileprovider",
+                imageFile,
+            )
+            pendingCameraPhotoUri.value = uri
+            cameraLauncher.launch(uri)
+        }
+    }
 
     LaunchedEffect(
         viewModel.sessionState.isLoading,
@@ -263,6 +291,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                         state = viewModel.uploadUiState,
                         onOccasionChange = viewModel::updateUploadOccasion,
                         onPickPhotos = viewModel::requestUploadPhotoPicker,
+                        onTakePhoto = viewModel::requestUploadCameraCapture,
                         onSubmit = { viewModel.submitUpload(context.contentResolver) },
                     )
                 }

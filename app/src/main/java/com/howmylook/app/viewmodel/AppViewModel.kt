@@ -455,6 +455,14 @@ class AppViewModel : ViewModel() {
         )
     }
 
+    fun requestUploadCameraCapture() {
+        uploadUiState = uploadUiState.copy(
+            cameraLaunchNonce = uploadUiState.cameraLaunchNonce + 1,
+            error = null,
+            message = "",
+        )
+    }
+
     fun setSelectedUploadPhotos(photoUris: List<String>) {
         val limited = photoUris.take(5)
         uploadUiState = uploadUiState.copy(
