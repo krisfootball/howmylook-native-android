@@ -23,11 +23,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,11 +41,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.howmylook.app.data.activity.ActivityUiState
@@ -672,6 +671,7 @@ fun ProfileScreen(
     state: ProfileUiState,
     onBack: () -> Unit,
     onToggleFollow: () -> Unit,
+    onToggleNotifications: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenYesGiven: () -> Unit,
@@ -777,13 +777,31 @@ fun ProfileScreen(
                 }
 
                 if (!state.isOwnProfile && state.profileId != null) {
-                    Button(
-                        onClick = onToggleFollow,
-                        enabled = !state.loading,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
-                    ) {
-                        Text(if (state.loading) "Saving..." else if (state.isFollowing) "Following" else "Follow")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = onToggleFollow,
+                            enabled = !state.loading,
+                            shape = RoundedCornerShape(999.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state.isFollowing) Color.White else DarkButton,
+                                contentColor = if (state.isFollowing) DarkButton else Color.White,
+                            ),
+                        ) {
+                            Text(if (state.loading) "Saving..." else if (state.isFollowing) "Following" else "Follow")
+                        }
+                        if (state.isFollowing) {
+                            Button(
+                                onClick = onToggleNotifications,
+                                enabled = !state.loading,
+                                shape = RoundedCornerShape(999.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (state.notificationsEnabled) DarkButton else Color.White,
+                                    contentColor = if (state.notificationsEnabled) Color.White else DarkButton,
+                                ),
+                            ) {
+                                Text(if (state.notificationsEnabled) "Notifications on" else "Notify me")
+                            }
+                        }
                     }
                 }
 

@@ -16,5 +16,6 @@ data class ProfileUiState(
     val posts: List<ExploreLookCard> = emptyList(),
     val isOwnProfile: Boolean = true,
     val isFollowing: Boolean = false,
+    val notificationsEnabled: Boolean = false,
     val error: String? = null,
 )
