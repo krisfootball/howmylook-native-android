@@ -1084,9 +1084,6 @@ fun PostDetailScreen(
                         }
                     }
                 }
-                if (state.keepForever) {
-                    Text("Pinned on profile", color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                }
                 Text(
                     text = state.authorName,
                     style = MaterialTheme.typography.headlineSmall,
