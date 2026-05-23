@@ -847,14 +847,16 @@ fun ProfileScreen(
             }
         }
 
-        Surface(
-            shape = RoundedCornerShape(26.dp),
-            color = Color(0xFFFDF3F8),
-            shadowElevation = 1.dp,
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Photos disappear after 30 days unless you keep them.", color = MaterialTheme.colorScheme.onSurface)
-                Text("$keptCount of 10 kept", color = AccentPink, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+        if (state.isOwnProfile) {
+            Surface(
+                shape = RoundedCornerShape(26.dp),
+                color = Color(0xFFFDF3F8),
+                shadowElevation = 1.dp,
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Photos disappear after 30 days unless you keep them.", color = MaterialTheme.colorScheme.onSurface)
+                    Text("$keptCount of 10 kept", color = AccentPink, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
 
