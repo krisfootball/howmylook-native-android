@@ -272,7 +272,17 @@ class AppViewModel : ViewModel() {
                     if (authFormState.mode == AuthMode.SIGN_UP && message.contains("Check your email")) {
                         setAuthMode(AuthMode.SIGN_IN)
                     } else {
-                        bootstrapSession()
+                        viewModelScope.launch {
+                            if (authFormState.mode == AuthMode.SIGN_IN) {
+                                authRepository.loadCurrentProfile(supabaseConfig)
+                                    .onSuccess { profile ->
+                                        profile?.id?.let { userId ->
+                                            authRepository.resetLoginRatingCounter(supabaseConfig, userId)
+                                        }
+                                    }
+                            }
+                            bootstrapSession()
+                        }
                     }
                 }
                 .onFailure { error ->
