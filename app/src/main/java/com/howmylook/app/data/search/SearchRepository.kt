@@ -20,6 +20,7 @@ private data class SearchProfileDto(
 @Serializable
 private data class SearchLookDto(
     @SerialName("id") val id: String,
+    @SerialName("user_id") val userId: String,
     @SerialName("caption") val caption: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("yes_count") val yesCount: Int = 0,
