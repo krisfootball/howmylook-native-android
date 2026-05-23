@@ -137,7 +137,15 @@ fun AppNavigation(viewModel: AppViewModel) {
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
-                                    if (item.route == AppRoute.Profile) {
+                                    if (viewModel.sessionState.needsUnlockRatings && item.route != AppRoute.Home) {
+                                        navController.navigate(AppRoute.Home.name) {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    } else if (item.route == AppRoute.Profile) {
                                         viewModel.openOwnProfile()
                                         val currentBackStackRoute = currentRoute
                                         if (currentBackStackRoute in profileBackstackRoutes) {
@@ -345,8 +353,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                         state = viewModel.followListUiState,
                         onBack = { navController.popBackStack() },
                         onOpenPerson = { profileId ->
-                            viewModel.openPersonProfile(profileId)
-                            navController.navigate(AppRoute.Profile.name)
+                            if (!viewModel.sessionState.needsUnlockRatings) {
+                                viewModel.openPersonProfile(profileId)
+                                navController.navigate(AppRoute.Profile.name)
+                            }
                         },
                     )
                 }
