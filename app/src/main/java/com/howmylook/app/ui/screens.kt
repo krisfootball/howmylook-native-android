@@ -511,14 +511,6 @@ private fun LockBanner() {
 
 @Composable
 fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPost: (String) -> Unit) {
-    val query = state.query.trim().lowercase()
-    val filteredLooks = if (query.isBlank()) state.looks else state.looks.filter {
-        it.occasion.lowercase().contains(query)
-    }
-    val filteredPeople = if (query.isBlank()) state.people else state.people.filter {
-        it.displayName.lowercase().contains(query) || it.username.lowercase().contains(query)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -554,9 +546,9 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
             }
         }
 
-        if (!state.loading && filteredLooks.isNotEmpty()) {
+        if (!state.loading && state.looks.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                filteredLooks.chunked(3).forEachIndexed { rowIndex, row ->
+                state.looks.chunked(3).forEachIndexed { rowIndex, row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         row.forEachIndexed { columnIndex, look ->
                             Box(
