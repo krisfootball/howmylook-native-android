@@ -366,6 +366,7 @@ fun HomeScreen(
     sessionState: SessionState,
     card: RatingCard?,
     homeUiState: HomeUiState,
+    onOpenAuthorProfile: (String) -> Unit,
     onVoteYes: () -> Unit,
     onVoteNo: () -> Unit,
 ) {
@@ -465,7 +466,16 @@ fun HomeScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(card.authorName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(
+                    text = card.authorName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onOpenAuthorProfile(card.authorId) }
+                        .padding(vertical = 2.dp)
+                )
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
                 Text("Yes ${card.yesCount} · No ${card.noCount}", color = Color.White.copy(alpha = 0.78f))
                 if (homeUiState.destination == HomeDestination.LOCKED_HOME && card.needsMoreRatings > 0) {

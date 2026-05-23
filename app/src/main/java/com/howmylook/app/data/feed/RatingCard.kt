@@ -2,6 +2,7 @@ package com.howmylook.app.data.feed
 
 data class RatingCard(
     val id: String,
+    val authorId: String,
     val authorName: String,
     val occasion: String,
     val imageUrl: String? = null,

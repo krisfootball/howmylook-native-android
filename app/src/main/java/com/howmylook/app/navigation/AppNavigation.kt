@@ -266,6 +266,13 @@ fun AppNavigation(viewModel: AppViewModel) {
                     sessionState = viewModel.sessionState,
                     card = viewModel.currentCard,
                     homeUiState = viewModel.homeUiState,
+                    onOpenAuthorProfile = { profileId ->
+                        viewModel.openPersonProfile(profileId)
+                        navController.navigate(AppRoute.Profile.name) {
+                            launchSingleTop = false
+                            restoreState = false
+                        }
+                    },
                     onVoteYes = viewModel::voteYes,
                     onVoteNo = viewModel::voteNo,
                 )

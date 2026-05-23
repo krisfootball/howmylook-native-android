@@ -18,6 +18,7 @@ fun RatingQueuePostDto.toCard(authorName: String): RatingCard {
     val totalRatings = yesCount + noCount
     return RatingCard(
         id = id,
+        authorId = userId,
         authorName = authorName,
         occasion = caption ?: "No occasion added yet",
         imageUrl = imageUrl,
