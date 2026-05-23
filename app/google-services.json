@@ -1,0 +1,29 @@
+{
+ "project_info": {
+ "project_number": "24710360138",
+ "project_id": "rere-16585",
+ "storage_bucket": "rere-16585.firebasestorage.app"
+ },
+ "client": [
+ {
+ "client_info": {
+ "mobilesdk_app_id": "1:24710360138:android:07518605fbe28a6ca24ab3",
+ "android_client_info": {
+ "package_name": "com.howmylook.app"
+ }
+ },
+ "oauth_client": [],
+ "api_key": [
+ {
+ "current_key": "AIzaSyDNBn5U5Gruen6OxjY21C74gj0ZG2oV2x4"
+ }
+ ],
+ "services": {
+ "appinvite_service": {
+ "other_platform_oauth_client": []
+ }
+ }
+ }
+ ],
+ "configuration_version": "1"
+}

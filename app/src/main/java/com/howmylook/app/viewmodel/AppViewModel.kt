@@ -1,9 +1,13 @@
 package com.howmylook.app.viewmodel
 
+import android.Manifest
 import android.content.ContentResolver
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.howmylook.app.data.SupabaseConfig
@@ -16,6 +20,8 @@ import com.howmylook.app.data.auth.AuthRepository
 import com.howmylook.app.data.auth.SessionState
 import com.howmylook.app.data.auth.UsernameFormState
 import com.howmylook.app.data.feed.FeedRepository
+import com.howmylook.app.data.notifications.AndroidPushRepository
+import com.howmylook.app.data.notifications.NotificationPermissionState
 import com.howmylook.app.data.feed.HomeDestination
 import com.howmylook.app.data.feed.HomeUiState
 import com.howmylook.app.data.feed.RatingCard
@@ -42,6 +48,7 @@ import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.AppRoute
 import com.howmylook.app.domain.AppStep
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
 class AppViewModel : ViewModel() {
@@ -59,6 +66,7 @@ class AppViewModel : ViewModel() {
     private val editPostRepository = EditPostRepository()
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
+    private val androidPushRepository = AndroidPushRepository()
     private val supabaseConfig = SupabaseConfig.fromBuildConfig()
 
     var sessionState by mutableStateOf(
@@ -140,6 +148,9 @@ class AppViewModel : ViewModel() {
     var bootstrapMessage by mutableStateOf("Bootstrapping…")
         private set
 
+    var notificationPermissionState by mutableStateOf(NotificationPermissionState())
+        private set
+
     init {
         bootstrapSession()
     }
@@ -199,6 +210,7 @@ class AppViewModel : ViewModel() {
                     loadRatingQueue()
                     loadActivity()
                 }
+                registerPendingPushToken()
             }
         }
     }
@@ -696,6 +708,37 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun refreshNotificationPermissionState(context: android.content.Context) {
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        notificationPermissionState = notificationPermissionState.copy(
+            supported = true,
+            granted = granted,
+        )
+    }
+
+    fun markNotificationPermissionRequested() {
+        notificationPermissionState = notificationPermissionState.copy(requestedThisSession = true)
+    }
+
+    fun registerPendingPushToken() {
+        val userId = currentUserId ?: return
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            if (token.isNullOrBlank()) return@addOnSuccessListener
+            viewModelScope.launch {
+                androidPushRepository.registerToken(
+                    config = supabaseConfig,
+                    userId = userId,
+                    token = token,
+                    deviceName = "Android",
+                )
+            }
+        }
+    }
+
     fun toggleProfileNotifications() {
         val viewerUserId = currentUserId ?: return
         val profileId = selectedPersonProfileId ?: return
@@ -709,6 +752,9 @@ class AppViewModel : ViewModel() {
                         notificationsEnabled = nextEnabled,
                         error = null,
                     )
+                    if (nextEnabled) {
+                        registerPendingPushToken()
+                    }
                 }
                 .onFailure { error ->
                     profileUiState = profileUiState.copy(
