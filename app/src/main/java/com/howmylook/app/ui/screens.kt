@@ -551,7 +551,6 @@ fun SearchScreen(state: SearchUiState, onOpenPost: (String) -> Unit) {
             }
         }
 
-        SectionTitle("Looks")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             state.looks.chunked(3).forEachIndexed { rowIndex, row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
