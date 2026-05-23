@@ -70,7 +70,7 @@ class PeopleRepository {
                 }
                 .decodeSingleOrNull<FollowRowDto>()
 
-            val yesGivenCount = client.from("votes")
+            val yesVoteRows = client.from("votes")
                 .select(columns = Columns.list("post_id")) {
                     filter {
                         eq("user_id", profileId)
@@ -78,9 +78,8 @@ class PeopleRepository {
                     }
                 }
                 .decodeList<PeopleVoteCountRowDto>()
-                .size
 
-            val noGivenCount = client.from("votes")
+            val noVoteRows = client.from("votes")
                 .select(columns = Columns.list("post_id")) {
                     filter {
                         eq("user_id", profileId)
@@ -88,9 +87,11 @@ class PeopleRepository {
                     }
                 }
                 .decodeList<PeopleVoteCountRowDto>()
-                .size
 
             val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }
+            val visiblePostIds = posts.map { it.id }.toSet()
+            val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visiblePostIds.contains(row.postId) }
+            val noGivenCount = noVoteRows.count { row -> row.postId != null && visiblePostIds.contains(row.postId) }
 
             ProfileUiState(
                 loading = false,
