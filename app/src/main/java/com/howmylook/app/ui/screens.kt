@@ -453,16 +453,6 @@ fun HomeScreen(
                 if (homeUiState.destination == HomeDestination.LOCKED_HOME) {
                     LockBanner()
                 }
-                if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
-                    Surface(shape = RoundedCornerShape(18.dp), color = Color.Black.copy(alpha = 0.38f)) {
-                        Text(
-                            "Only ${sessionState.availablePostCount} rateable posts are available right now.",
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            color = Color.White.copy(alpha = 0.9f),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
