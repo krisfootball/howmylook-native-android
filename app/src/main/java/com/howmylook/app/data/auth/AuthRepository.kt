@@ -17,12 +17,13 @@ class AuthRepository {
         profile: ProfileRecord?,
         availablePostCount: Int,
     ): AppStep {
+        val requiredRatings = minOf(AppConfig.unlockVoteCount, availablePostCount.coerceAtLeast(0))
         return getNextRequiredStep(
             isAuthenticated = isAuthenticated,
             hasUsername = hasCompletedUsername(profile?.id, profile?.username),
             ratingsCompleted = profile?.loginRatingVotesCompleted ?: 0,
-            unlockVoteCount = AppConfig.unlockVoteCount,
-            bypassRatingGate = availablePostCount < AppConfig.unlockVoteCount,
+            unlockVoteCount = requiredRatings,
+            bypassRatingGate = false,
         )
     }
 
