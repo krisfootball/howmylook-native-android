@@ -473,6 +473,11 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun openOwnProfile() {
+        selectedPersonProfileId = null
+        loadProfile()
+    }
+
     fun openSelectedOwnerProfile() {
         val profileId = selectedPersonProfileId ?: return
         openPersonProfile(profileId)

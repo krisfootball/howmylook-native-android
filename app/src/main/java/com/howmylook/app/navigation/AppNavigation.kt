@@ -138,6 +138,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                                 selected = selected,
                                 onClick = {
                                     if (item.route == AppRoute.Profile) {
+                                        viewModel.openOwnProfile()
                                         val currentBackStackRoute = currentRoute
                                         if (currentBackStackRoute in profileBackstackRoutes) {
                                             val popped = navController.popBackStack(AppRoute.Profile.name, inclusive = false)
