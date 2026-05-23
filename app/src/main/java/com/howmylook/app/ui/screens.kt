@@ -1097,7 +1097,6 @@ fun PostDetailScreen(
                         .clickable(enabled = onOpenAuthorProfile != null) { onOpenAuthorProfile?.invoke() }
                         .padding(vertical = 2.dp)
                 )
-                Text("O C C A S I O N", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
                 Text("${state.yesCount} yes    ${state.noCount} no", color = Color.White.copy(alpha = 0.84f), style = MaterialTheme.typography.bodyMedium)
                 if (state.actionMessage.isNotBlank()) {
