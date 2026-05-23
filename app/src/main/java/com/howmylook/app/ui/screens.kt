@@ -934,6 +934,7 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 fun PostDetailScreen(
     state: PostDetailUiState,
     onBack: () -> Unit,
+    onOpenAuthorProfile: (() -> Unit)? = null,
     onToggleKeep: (() -> Unit)? = null,
     onDeletePost: (() -> Unit)? = null,
     onEditOccasion: ((String) -> Unit)? = null,
@@ -1067,7 +1068,16 @@ fun PostDetailScreen(
                 if (state.keepForever) {
                     Text("Pinned on profile", color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 }
-                Text(state.authorName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(
+                    text = state.authorName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(enabled = onOpenAuthorProfile != null) { onOpenAuthorProfile?.invoke() }
+                        .padding(vertical = 2.dp)
+                )
                 Text("O C C A S I O N", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
                 Text("${state.yesCount} yes    ${state.noCount} no", color = Color.White.copy(alpha = 0.84f), style = MaterialTheme.typography.bodyMedium)

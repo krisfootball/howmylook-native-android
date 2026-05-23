@@ -343,6 +343,13 @@ fun AppNavigation(viewModel: AppViewModel) {
                             navController.popBackStack()
                         }
                     },
+                    onOpenAuthorProfile = {
+                        viewModel.openPostAuthorProfile()
+                        navController.navigate(AppRoute.Profile.name) {
+                            launchSingleTop = false
+                            restoreState = false
+                        }
+                    },
                     onToggleKeep = viewModel::toggleKeepCurrentPost,
                     onDeletePost = viewModel::deleteCurrentPost,
                     onEditOccasion = viewModel::editCurrentPostOccasion,
