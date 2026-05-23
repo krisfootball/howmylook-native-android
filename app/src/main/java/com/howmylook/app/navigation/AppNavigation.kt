@@ -140,7 +140,16 @@ fun AppNavigation(viewModel: AppViewModel) {
                                     if (item.route == AppRoute.Profile) {
                                         val currentBackStackRoute = currentRoute
                                         if (currentBackStackRoute in profileBackstackRoutes) {
-                                            navController.popBackStack(AppRoute.Profile.name, inclusive = false)
+                                            val popped = navController.popBackStack(AppRoute.Profile.name, inclusive = false)
+                                            if (!popped) {
+                                                navController.navigate(AppRoute.Profile.name) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            }
                                         } else {
                                             navController.navigate(AppRoute.Profile.name) {
                                                 popUpTo(navController.graph.startDestinationId) {
