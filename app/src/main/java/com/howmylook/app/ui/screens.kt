@@ -731,34 +731,36 @@ fun ProfileScreen(
                                 Text(state.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Text(state.username, color = SoftText)
                             }
-                            Box {
-                                Text(
-                                    "⋯",
-                                    modifier = Modifier.clickable { menuExpanded = true }.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    color = AccentPink,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                )
-                                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                                    DropdownMenuItem(text = { Text("Terms") }, onClick = {
-                                        menuExpanded = false
-                                        uriHandler.openUri("https://howmylook.com/terms")
-                                    })
-                                    DropdownMenuItem(text = { Text("Privacy") }, onClick = {
-                                        menuExpanded = false
-                                        uriHandler.openUri("https://howmylook.com/privacy")
-                                    })
-                                    DropdownMenuItem(text = { Text("Guidelines") }, onClick = {
-                                        menuExpanded = false
-                                        uriHandler.openUri("https://howmylook.com/guidelines")
-                                    })
-                                    DropdownMenuItem(text = { Text("Contact") }, onClick = {
-                                        menuExpanded = false
-                                        uriHandler.openUri("https://howmylook.com/contact")
-                                    })
-                                    DropdownMenuItem(text = { Text("Log out") }, onClick = {
-                                        menuExpanded = false
-                                        onLogOut()
-                                    })
+                            if (state.isOwnProfile) {
+                                Box {
+                                    Text(
+                                        "⋯",
+                                        modifier = Modifier.clickable { menuExpanded = true }.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        color = AccentPink,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                    )
+                                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                        DropdownMenuItem(text = { Text("Terms") }, onClick = {
+                                            menuExpanded = false
+                                            uriHandler.openUri("https://howmylook.com/terms")
+                                        })
+                                        DropdownMenuItem(text = { Text("Privacy") }, onClick = {
+                                            menuExpanded = false
+                                            uriHandler.openUri("https://howmylook.com/privacy")
+                                        })
+                                        DropdownMenuItem(text = { Text("Guidelines") }, onClick = {
+                                            menuExpanded = false
+                                            uriHandler.openUri("https://howmylook.com/guidelines")
+                                        })
+                                        DropdownMenuItem(text = { Text("Contact") }, onClick = {
+                                            menuExpanded = false
+                                            uriHandler.openUri("https://howmylook.com/contact")
+                                        })
+                                        DropdownMenuItem(text = { Text("Log out") }, onClick = {
+                                            menuExpanded = false
+                                            onLogOut()
+                                        })
+                                    }
                                 }
                             }
                         }
