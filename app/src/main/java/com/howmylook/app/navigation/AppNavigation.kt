@@ -311,7 +311,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                         state = viewModel.activityUiState,
                         onOpenProfile = { profileId ->
                             viewModel.openPersonProfile(profileId)
-                            navController.navigate(AppRoute.Profile.name)
+                            navController.navigate(AppRoute.Profile.name) {
+                                launchSingleTop = false
+                                restoreState = false
+                            }
                         },
                         onOpenPost = { postId ->
                             viewModel.openPostDetail(postId, fromRoute = AppRoute.Activity.name)
@@ -355,7 +358,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                         onOpenPerson = { profileId ->
                             if (!viewModel.sessionState.needsUnlockRatings) {
                                 viewModel.openPersonProfile(profileId)
-                                navController.navigate(AppRoute.Profile.name)
+                                navController.navigate(AppRoute.Profile.name) {
+                                    launchSingleTop = false
+                                    restoreState = false
+                                }
                             }
                         },
                     )

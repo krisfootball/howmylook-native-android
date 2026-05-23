@@ -47,7 +47,7 @@ class ProfileRepository {
                 .decodeList<Map<String, String?>>()
                 .size
 
-            val yesGivenCount = client.from("votes")
+            val yesVoteRows = client.from("votes")
                 .select(columns = Columns.list("post_id")) {
                     filter {
                         eq("user_id", userId)
@@ -55,9 +55,8 @@ class ProfileRepository {
                     }
                 }
                 .decodeList<ProfileVoteCountRowDto>()
-                .size
 
-            val noGivenCount = client.from("votes")
+            val noVoteRows = client.from("votes")
                 .select(columns = Columns.list("post_id")) {
                     filter {
                         eq("user_id", userId)
@@ -65,7 +64,25 @@ class ProfileRepository {
                     }
                 }
                 .decodeList<ProfileVoteCountRowDto>()
-                .size
+
+            val votedPostIds = (yesVoteRows.mapNotNull { it.postId } + noVoteRows.mapNotNull { it.postId }).distinct()
+            val visibleVotedPostIds = if (votedPostIds.isEmpty()) {
+                emptySet()
+            } else {
+                client.from("posts")
+                    .select(columns = Columns.list("id")) {
+                        filter {
+                            isIn("id", votedPostIds)
+                            eq("is_active", true)
+                            eq("moderation_status", "approved")
+                        }
+                    }
+                    .decodeList<ProfileVoteCountRowDto>()
+                    .mapNotNull { it.postId }
+                    .toSet()
+            }
+            val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
+            val noGivenCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
 
             val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
 
