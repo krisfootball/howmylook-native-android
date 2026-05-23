@@ -478,8 +478,12 @@ fun HomeScreen(
                 )
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
                 Text("Yes ${card.yesCount} · No ${card.noCount}", color = Color.White.copy(alpha = 0.78f))
-                if (homeUiState.statusMessage.isNotBlank()) {
-                    Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.74f))
+                if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
+                    Text(
+                        "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available now.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.74f),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
