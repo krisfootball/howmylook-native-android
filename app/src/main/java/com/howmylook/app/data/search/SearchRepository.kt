@@ -47,11 +47,6 @@ class SearchRepository {
                     limit(200)
                 }
                 .decodeList<SearchProfileDto>()
-                .filter {
-                    normalizedQuery.isBlank() ||
-                        (it.displayName ?: "").lowercase().contains(normalizedQuery) ||
-                        (it.username ?: "").lowercase().contains(normalizedQuery)
-                }
 
             val followingIds = if (viewerUserId == null) {
                 emptySet()
@@ -65,55 +60,33 @@ class SearchRepository {
                     .toSet()
             }
 
-            val profileIds = profiles.map { it.id }.distinct()
-            val matchingPosts = if (normalizedQuery.isBlank()) {
-                client.from("posts")
-                    .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
-                        filter {
-                            eq("is_active", true)
-                            eq("moderation_status", "approved")
-                        }
-                        order("created_at", Order.DESCENDING)
-                        limit(30)
+            val looks = client.from("posts")
+                .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
+                    filter {
+                        eq("is_active", true)
+                        eq("moderation_status", "approved")
                     }
-                    .decodeList<SearchLookDto>()
-            } else {
-                val captionPosts = client.from("posts")
-                    .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
-                        filter {
-                            eq("is_active", true)
-                            eq("moderation_status", "approved")
-                            ilike("caption", "%$normalizedQuery%")
-                        }
-                        order("created_at", Order.DESCENDING)
-                        limit(30)
-                    }
-                    .decodeList<SearchLookDto>()
-
-                val profilePosts = if (profileIds.isEmpty()) {
-                    emptyList()
-                } else {
-                    client.from("posts")
-                        .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
-                            filter {
-                                eq("is_active", true)
-                                eq("moderation_status", "approved")
-                                isIn("user_id", profileIds)
-                            }
-                            order("created_at", Order.DESCENDING)
-                            limit(30)
-                        }
-                        .decodeList<SearchLookDto>()
+                    order("created_at", Order.DESCENDING)
+                    limit(200)
                 }
+                .decodeList<SearchLookDto>()
 
-                (captionPosts + profilePosts).distinctBy { it.id }
+            val profileMap = profiles.associateBy { it.id }
+            val matchingLooks = if (normalizedQuery.isBlank()) {
+                looks
+            } else {
+                looks.filter { post ->
+                    (post.caption ?: "").lowercase().contains(normalizedQuery) ||
+                        (profileMap[post.userId]?.displayName ?: "").lowercase().contains(normalizedQuery) ||
+                        (profileMap[post.userId]?.username ?: "").lowercase().contains(normalizedQuery)
+                }
             }
 
             SearchUiState(
                 loading = false,
                 query = query,
                 people = emptyList(),
-                looks = matchingPosts.map {
+                looks = matchingLooks.map {
                     ExploreLookCard(
                         id = it.id,
                         occasion = it.caption ?: "No occasion added yet",
