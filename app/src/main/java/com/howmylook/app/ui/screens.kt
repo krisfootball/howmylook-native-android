@@ -543,7 +543,7 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
                     value = state.query,
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search display name, username or occasion") },
+                    placeholder = { Text("Search") },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                     colors = appTextFieldColors(),
@@ -557,26 +557,6 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
         state.error?.let {
             Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
                 Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
-            }
-        }
-
-        if (!state.loading && filteredPeople.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                filteredPeople.forEach { person ->
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.White,
-                        shadowElevation = 1.dp,
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(person.displayName, fontWeight = FontWeight.SemiBold)
-                            Text(person.username, color = SoftText)
-                            if (person.bio.isNotBlank()) {
-                                Text(person.bio, color = SoftText)
-                            }
-                        }
-                    }
-                }
             }
         }
 
