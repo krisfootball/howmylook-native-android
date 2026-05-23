@@ -867,8 +867,9 @@ fun ProfileScreen(
                                         "📌",
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .padding(8.dp),
+                                            .padding(top = 6.dp, end = 6.dp),
                                         color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
                                     )
                                 }
                                 Box(
