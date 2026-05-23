@@ -283,6 +283,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                 } else {
                     SearchScreen(
                         state = viewModel.searchUiState,
+                        onQueryChange = viewModel::updateSearchQuery,
                         onOpenPost = { postId ->
                             viewModel.openPostDetail(postId, fromRoute = AppRoute.Search.name)
                             navController.navigate(AppRoute.PostDetail.name)

@@ -516,7 +516,15 @@ private fun LockBanner() {
 }
 
 @Composable
-fun SearchScreen(state: SearchUiState, onOpenPost: (String) -> Unit) {
+fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPost: (String) -> Unit) {
+    val query = state.query.trim().lowercase()
+    val filteredLooks = if (query.isBlank()) state.looks else state.looks.filter {
+        it.occasion.lowercase().contains(query)
+    }
+    val filteredPeople = if (query.isBlank()) state.people else state.people.filter {
+        it.displayName.lowercase().contains(query) || it.username.lowercase().contains(query)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -530,15 +538,16 @@ fun SearchScreen(state: SearchUiState, onOpenPost: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("⌕", color = SoftText)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Search people or occasion", color = SoftText)
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Search display name, username or occasion") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
+                    colors = appTextFieldColors(),
+                )
             }
         }
 
@@ -551,45 +560,67 @@ fun SearchScreen(state: SearchUiState, onOpenPost: (String) -> Unit) {
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            state.looks.chunked(3).forEachIndexed { rowIndex, row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    row.forEachIndexed { columnIndex, look ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .clickable { onOpenPost(look.id) },
-                        ) {
-                            if (!look.imageUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = look.imageUrl,
-                                    contentDescription = look.occasion,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                val colors = when ((rowIndex + columnIndex) % 3) {
-                                    0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
-                                    1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
-                                    else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
-                                }
-                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .fillMaxWidth()
-                                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
-                                    .padding(8.dp),
-                            ) {
-                                Text("${look.yesCount} yes · ${look.noCount} no", color = Color.White, style = MaterialTheme.typography.labelSmall)
+        if (!state.loading && filteredPeople.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                filteredPeople.forEach { person ->
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White,
+                        shadowElevation = 1.dp,
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(person.displayName, fontWeight = FontWeight.SemiBold)
+                            Text(person.username, color = SoftText)
+                            if (person.bio.isNotBlank()) {
+                                Text(person.bio, color = SoftText)
                             }
                         }
                     }
-                    repeat(3 - row.size) {
-                        Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
+        if (!state.loading && filteredLooks.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                filteredLooks.chunked(3).forEachIndexed { rowIndex, row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        row.forEachIndexed { columnIndex, look ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .clickable { onOpenPost(look.id) },
+                            ) {
+                                if (!look.imageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = look.imageUrl,
+                                        contentDescription = look.occasion,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    val colors = when ((rowIndex + columnIndex) % 3) {
+                                        0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                                        1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                                        else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
+                                    }
+                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .fillMaxWidth()
+                                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                        .padding(8.dp),
+                                ) {
+                                    Text("${look.yesCount} yes · ${look.noCount} no", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                        repeat(3 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
