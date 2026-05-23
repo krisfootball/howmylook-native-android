@@ -26,6 +26,7 @@ import com.howmylook.app.data.post.PostRepository
 import com.howmylook.app.data.profile.EditProfileFormState
 import com.howmylook.app.data.profile.EditProfileRepository
 import com.howmylook.app.data.profile.FollowListRepository
+import com.howmylook.app.data.profile.NotificationSettingsRepository
 import com.howmylook.app.data.profile.PeopleRepository
 import com.howmylook.app.data.profile.ProfileRepository
 import com.howmylook.app.data.profile.ProfileUiState
@@ -53,6 +54,7 @@ class AppViewModel : ViewModel() {
     private val followListRepository = FollowListRepository()
     private val voteHistoryRepository = VoteHistoryRepository()
     private val editProfileRepository = EditProfileRepository()
+    private val notificationSettingsRepository = NotificationSettingsRepository()
     private val postRepository = PostRepository()
     private val editPostRepository = EditPostRepository()
     private val searchRepository = SearchRepository()
@@ -689,6 +691,29 @@ class AppViewModel : ViewModel() {
                     editProfileFormState = editProfileFormState.copy(
                         loading = false,
                         error = error.message ?: "Unable to load profile editor.",
+                    )
+                }
+        }
+    }
+
+    fun toggleProfileNotifications() {
+        val viewerUserId = currentUserId ?: return
+        val profileId = selectedPersonProfileId ?: return
+        val nextEnabled = !profileUiState.notificationsEnabled
+        viewModelScope.launch {
+            profileUiState = profileUiState.copy(loading = true, error = null)
+            notificationSettingsRepository.setEnabled(supabaseConfig, viewerUserId, profileId, nextEnabled)
+                .onSuccess {
+                    profileUiState = profileUiState.copy(
+                        loading = false,
+                        notificationsEnabled = nextEnabled,
+                        error = null,
+                    )
+                }
+                .onFailure { error ->
+                    profileUiState = profileUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to update notification settings.",
                     )
                 }
         }

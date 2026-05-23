@@ -21,6 +21,7 @@ private data class PersonProfileDto(
 private data class FollowRowDto(
     @SerialName("follower_id") val followerId: String? = null,
     @SerialName("following_id") val followingId: String? = null,
+    @SerialName("notifications_enabled") val notificationsEnabled: Boolean? = null,
 )
 
 @Serializable
@@ -60,7 +61,7 @@ class PeopleRepository {
                 .decodeList<FollowRowDto>()
 
             val viewerFollow = client.from("follows")
-                .select(columns = Columns.list("follower_id", "following_id")) {
+                .select(columns = Columns.list("follower_id", "following_id", "notifications_enabled")) {
                     filter {
                         eq("follower_id", viewerUserId)
                         eq("following_id", profileId)
@@ -105,6 +106,7 @@ class PeopleRepository {
                 posts = posts,
                 isOwnProfile = viewerUserId == profileId,
                 isFollowing = viewerFollow != null,
+                notificationsEnabled = viewerFollow?.notificationsEnabled ?: false,
                 error = null,
             )
         }

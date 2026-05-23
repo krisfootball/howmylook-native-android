@@ -79,6 +79,13 @@ fun AppNavigation(viewModel: AppViewModel) {
         AppRoute.VoteHistory.name,
         AppRoute.EditProfile.name,
     )
+    val profileBackstackRoutes = setOf(
+        AppRoute.PostDetail.name,
+        AppRoute.FollowList.name,
+        AppRoute.VoteHistory.name,
+        AppRoute.EditProfile.name,
+        AppRoute.Profile.name,
+    )
     val showBottomBar = currentRoute in bottomBarRoutes
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -130,10 +137,18 @@ fun AppNavigation(viewModel: AppViewModel) {
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
-                                    if (item.route == AppRoute.Profile && viewModel.postDetailUiState.fromRoute == AppRoute.Profile.name) {
-                                        navController.navigate(AppRoute.Profile.name) {
-                                            popUpTo(AppRoute.PostDetail.name) { inclusive = true }
-                                            launchSingleTop = true
+                                    if (item.route == AppRoute.Profile) {
+                                        val currentBackStackRoute = currentRoute
+                                        if (currentBackStackRoute in profileBackstackRoutes) {
+                                            navController.popBackStack(AppRoute.Profile.name, inclusive = false)
+                                        } else {
+                                            navController.navigate(AppRoute.Profile.name) {
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         }
                                     } else {
                                         navController.navigate(item.route.name) {
@@ -229,8 +244,13 @@ fun AppNavigation(viewModel: AppViewModel) {
                 } else {
                     ProfileScreen(
                         state = viewModel.profileUiState,
-                        onBack = { navController.popBackStack() },
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigate(AppRoute.Home.name) { launchSingleTop = true }
+                            }
+                        },
                         onToggleFollow = viewModel::followSelectedProfile,
+                        onToggleNotifications = viewModel::toggleProfileNotifications,
                         onOpenFollowers = {
                             viewModel.openFollowers()
                             navController.navigate(AppRoute.FollowList.name)
@@ -341,7 +361,11 @@ fun AppNavigation(viewModel: AppViewModel) {
                 } else {
                     EditProfileScreen(
                         state = viewModel.editProfileFormState,
-                        onBack = { navController.popBackStack() },
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigate(AppRoute.Profile.name) { launchSingleTop = true }
+                            }
+                        },
                         onUsernameChange = viewModel::updateEditUsername,
                         onDisplayNameChange = viewModel::updateEditDisplayName,
                         onBioChange = viewModel::updateEditBio,
