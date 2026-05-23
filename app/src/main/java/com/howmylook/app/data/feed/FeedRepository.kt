@@ -19,6 +19,13 @@ private data class FollowEdgeDto(
     @SerialName("following_id") val followingId: String,
 )
 
+@Serializable
+private data class FeedProfileDto(
+    @SerialName("id") val id: String,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("username") val username: String? = null,
+)
+
 class FeedRepository {
     suspend fun loadRatingQueue(config: SupabaseConfig, userId: String): Result<List<RatingCard>> {
         return runCatching {
@@ -59,7 +66,22 @@ class FeedRepository {
             val fallbackOthers = filteredPosts.filter { (it.yesCount + it.noCount) >= 5 && !followingIds.contains(it.userId) }
             val orderedPosts = underFiveFollowed + underFiveOthers + fallbackFollowed + fallbackOthers
 
-            orderedPosts.mapIndexed { index, post -> post.toCard(index) }
+            val authorIds = orderedPosts.map { it.userId }.distinct()
+            val authorProfiles = if (authorIds.isEmpty()) {
+                emptyMap()
+            } else {
+                client.from("profiles")
+                    .select(columns = Columns.list("id", "display_name", "username")) {
+                        filter { isIn("id", authorIds) }
+                    }
+                    .decodeList<FeedProfileDto>()
+                    .associateBy { it.id }
+            }
+
+            orderedPosts.map { post ->
+                val author = authorProfiles[post.userId]
+                post.toCard(author?.displayName ?: author?.username ?: "HowMyLook user")
+            }
         }
     }
 

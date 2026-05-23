@@ -14,11 +14,11 @@ data class RatingQueuePostDto(
     @SerialName("created_at") val createdAt: String? = null,
 )
 
-fun RatingQueuePostDto.toCard(index: Int): RatingCard {
+fun RatingQueuePostDto.toCard(authorName: String): RatingCard {
     val totalRatings = yesCount + noCount
     return RatingCard(
         id = id,
-        authorName = "Look ${index + 1}",
+        authorName = authorName,
         occasion = caption ?: "No occasion added yet",
         imageUrl = imageUrl,
         yesCount = yesCount,
