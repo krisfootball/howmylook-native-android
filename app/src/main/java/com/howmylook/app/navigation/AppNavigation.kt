@@ -168,6 +168,17 @@ fun AppNavigation(viewModel: AppViewModel) {
                                                 restoreState = true
                                             }
                                         }
+                                    } else if (item.route == AppRoute.Search) {
+                                        val popped = navController.popBackStack(AppRoute.Search.name, inclusive = false)
+                                        if (!popped) {
+                                            navController.navigate(AppRoute.Search.name) {
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
                                     } else {
                                         navController.navigate(item.route.name) {
                                             popUpTo(navController.graph.startDestinationId) {
