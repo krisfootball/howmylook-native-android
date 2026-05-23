@@ -478,13 +478,6 @@ fun HomeScreen(
                 )
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
                 Text("Yes ${card.yesCount} · No ${card.noCount}", color = Color.White.copy(alpha = 0.78f))
-                if (homeUiState.destination == HomeDestination.LOCKED_HOME && card.needsMoreRatings > 0) {
-                    Text(
-                        "This look still needs ${card.needsMoreRatings} more ratings.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.82f),
-                    )
-                }
                 if (homeUiState.statusMessage.isNotBlank()) {
                     Text(homeUiState.statusMessage, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.74f))
                 }
