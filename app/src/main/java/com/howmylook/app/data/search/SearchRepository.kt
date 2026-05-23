@@ -37,7 +37,6 @@ class SearchRepository {
     suspend fun loadSearch(config: SupabaseConfig, viewerUserId: String? = null, query: String = ""): Result<SearchUiState> {
         return runCatching {
             val client = SupabaseProvider.create(config)
-            val normalizedQuery = query.trim().lowercase()
 
             val profiles = client.from("profiles")
                 .select(columns = Columns.list("id", "display_name", "username", "bio", "avatar_url")) {
@@ -72,21 +71,13 @@ class SearchRepository {
                 .decodeList<SearchLookDto>()
 
             val profileMap = profiles.associateBy { it.id }
-            val matchingLooks = if (normalizedQuery.isBlank()) {
-                looks
-            } else {
-                looks.filter { post ->
-                    (post.caption ?: "").lowercase().contains(normalizedQuery) ||
-                        (profileMap[post.userId]?.displayName ?: "").lowercase().contains(normalizedQuery) ||
-                        (profileMap[post.userId]?.username ?: "").lowercase().contains(normalizedQuery)
-                }
-            }
 
             SearchUiState(
                 loading = false,
                 query = query,
                 people = emptyList(),
-                looks = matchingLooks.map {
+                looks = looks.map {
+                    val author = profileMap[it.userId]
                     ExploreLookCard(
                         id = it.id,
                         occasion = it.caption ?: "No occasion added yet",
@@ -94,6 +85,8 @@ class SearchRepository {
                         yesCount = it.yesCount,
                         noCount = it.noCount,
                         imageCount = 1,
+                        authorDisplayName = author?.displayName ?: "",
+                        authorUsername = author?.username ?: "",
                     )
                 },
                 error = null,

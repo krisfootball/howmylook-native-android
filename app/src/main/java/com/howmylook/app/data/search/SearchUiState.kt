@@ -17,6 +17,8 @@ data class ExploreLookCard(
     val noCount: Int = 0,
     val imageCount: Int = 1,
     val keepForever: Boolean = false,
+    val authorDisplayName: String = "",
+    val authorUsername: String = "",
 )
 
 data class SearchUiState(
