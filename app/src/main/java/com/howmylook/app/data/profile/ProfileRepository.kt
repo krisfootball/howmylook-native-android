@@ -20,6 +20,11 @@ private data class ProfileVoteCountRowDto(
     @SerialName("post_id") val postId: String? = null,
 )
 
+@Serializable
+private data class VisiblePostIdRowDto(
+    @SerialName("id") val id: String? = null,
+)
+
 class ProfileRepository {
     private val profilePostRepository = ProfilePostRepository()
 
@@ -77,8 +82,8 @@ class ProfileRepository {
                             eq("moderation_status", "approved")
                         }
                     }
-                    .decodeList<ProfileVoteCountRowDto>()
-                    .mapNotNull { it.postId }
+                    .decodeList<VisiblePostIdRowDto>()
+                    .mapNotNull { it.id }
                     .toSet()
             }
             val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
