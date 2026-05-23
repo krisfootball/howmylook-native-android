@@ -389,9 +389,9 @@ class AppViewModel : ViewModel() {
     private fun loadSearch() {
         viewModelScope.launch {
             searchUiState = searchUiState.copy(loading = true, error = null)
-            searchRepository.loadSearch(supabaseConfig, currentUserId)
+            searchRepository.loadSearch(supabaseConfig, currentUserId, searchUiState.query)
                 .onSuccess { state ->
-                    searchUiState = state.copy(query = searchUiState.query)
+                    searchUiState = state
                 }
                 .onFailure { error ->
                     searchUiState = searchUiState.copy(

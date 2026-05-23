@@ -33,17 +33,24 @@ private data class SearchFollowDto(
 )
 
 class SearchRepository {
-    suspend fun loadSearch(config: SupabaseConfig, viewerUserId: String? = null): Result<SearchUiState> {
+    suspend fun loadSearch(config: SupabaseConfig, viewerUserId: String? = null, query: String = ""): Result<SearchUiState> {
         return runCatching {
             val client = SupabaseProvider.create(config)
+            val normalizedQuery = query.trim().lowercase()
+
             val profiles = client.from("profiles")
                 .select(columns = Columns.list("id", "display_name", "username", "bio", "avatar_url")) {
                     if (viewerUserId != null) {
                         filter { neq("id", viewerUserId) }
                     }
-                    limit(30)
+                    limit(200)
                 }
                 .decodeList<SearchProfileDto>()
+                .filter {
+                    normalizedQuery.isBlank() ||
+                        (it.displayName ?: "").lowercase().contains(normalizedQuery) ||
+                        (it.username ?: "").lowercase().contains(normalizedQuery)
+                }
 
             val followingIds = if (viewerUserId == null) {
                 emptySet()
@@ -57,31 +64,55 @@ class SearchRepository {
                     .toSet()
             }
 
-            val looks = client.from("posts")
-                .select(columns = Columns.list("id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
-                    filter {
-                        eq("is_active", true)
-                        eq("moderation_status", "approved")
+            val profileIds = profiles.map { it.id }.distinct()
+            val matchingPosts = if (normalizedQuery.isBlank()) {
+                client.from("posts")
+                    .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
+                        filter {
+                            eq("is_active", true)
+                            eq("moderation_status", "approved")
+                        }
+                        order("created_at", Order.DESCENDING)
+                        limit(30)
                     }
-                    order("created_at", Order.DESCENDING)
-                    limit(30)
+                    .decodeList<SearchLookDto>()
+            } else {
+                val captionPosts = client.from("posts")
+                    .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
+                        filter {
+                            eq("is_active", true)
+                            eq("moderation_status", "approved")
+                            ilike("caption", "%$normalizedQuery%")
+                        }
+                        order("created_at", Order.DESCENDING)
+                        limit(30)
+                    }
+                    .decodeList<SearchLookDto>()
+
+                val profilePosts = if (profileIds.isEmpty()) {
+                    emptyList()
+                } else {
+                    client.from("posts")
+                        .select(columns = Columns.list("id", "user_id", "caption", "image_url", "yes_count", "no_count", "created_at")) {
+                            filter {
+                                eq("is_active", true)
+                                eq("moderation_status", "approved")
+                                isIn("user_id", profileIds)
+                            }
+                            order("created_at", Order.DESCENDING)
+                            limit(30)
+                        }
+                        .decodeList<SearchLookDto>()
                 }
-                .decodeList<SearchLookDto>()
+
+                (captionPosts + profilePosts).distinctBy { it.id }
+            }
 
             SearchUiState(
                 loading = false,
-                query = "",
-                people = profiles.map {
-                    ExploreProfileCard(
-                        id = it.id,
-                        displayName = it.displayName ?: "HowMyLook user",
-                        username = it.username?.let { username -> "@$username" } ?: "@username",
-                        bio = it.bio ?: "",
-                        avatarUrl = it.avatarUrl,
-                        isFollowing = followingIds.contains(it.id),
-                    )
-                },
-                looks = looks.map {
+                query = query,
+                people = emptyList(),
+                looks = matchingPosts.map {
                     ExploreLookCard(
                         id = it.id,
                         occasion = it.caption ?: "No occasion added yet",
