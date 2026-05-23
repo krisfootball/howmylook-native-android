@@ -89,9 +89,24 @@ class PeopleRepository {
                 .decodeList<PeopleVoteCountRowDto>()
 
             val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }
-            val visiblePostIds = posts.map { it.id }.toSet()
-            val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visiblePostIds.contains(row.postId) }
-            val noGivenCount = noVoteRows.count { row -> row.postId != null && visiblePostIds.contains(row.postId) }
+            val votedPostIds = (yesVoteRows.mapNotNull { it.postId } + noVoteRows.mapNotNull { it.postId }).distinct()
+            val visibleVotedPostIds = if (votedPostIds.isEmpty()) {
+                emptySet()
+            } else {
+                client.from("posts")
+                    .select(columns = Columns.list("id")) {
+                        filter {
+                            isIn("id", votedPostIds)
+                            eq("is_active", true)
+                            eq("moderation_status", "approved")
+                        }
+                    }
+                    .decodeList<PeopleVoteCountRowDto>()
+                    .mapNotNull { it.postId }
+                    .toSet()
+            }
+            val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
+            val noGivenCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
 
             ProfileUiState(
                 loading = false,

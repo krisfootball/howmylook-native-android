@@ -863,14 +863,21 @@ fun ProfileScreen(
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
                                 if (post.keepForever) {
-                                    Text(
-                                        "📌",
+                                    Box(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .padding(top = 6.dp, end = 6.dp),
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
+                                            .padding(top = 6.dp, end = 6.dp)
+                                            .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(999.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            "PIN",
+                                            color = Color.Black,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
                                 }
                                 Box(
                                     modifier = Modifier
