@@ -20,7 +20,7 @@ private data class FollowProfileDto(
     @SerialName("id") val id: String,
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("username") val username: String? = null,
-    @SerialName("bio") val bio: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
 class FollowListRepository {
@@ -55,7 +55,7 @@ class FollowListRepository {
 
             val people = edges.mapNotNull { id ->
                 client.from("profiles")
-                    .select(columns = Columns.list("id", "display_name", "username", "bio")) {
+                    .select(columns = Columns.list("id", "display_name", "username", "avatar_url")) {
                         filter { eq("id", id) }
                         limit(1)
                     }
@@ -65,7 +65,7 @@ class FollowListRepository {
                     id = it.id,
                     displayName = it.displayName ?: "HowMyLook user",
                     username = it.username?.let { username -> "@$username" } ?: "@username",
-                    bio = it.bio ?: "Posting looks and getting quick feedback.",
+                    avatarUrl = it.avatarUrl,
                 )
             }
 

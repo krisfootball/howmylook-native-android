@@ -71,6 +71,7 @@ private val SuccessText = Color(0xFF166534)
 private val ErrorText = Color(0xFFB91C1C)
 private val AccentPink = Color(0xFFDB2777)
 private val DarkButton = Color(0xFF020617)
+private const val OCCASION_MAX_LENGTH = 80
 
 @Composable
 private fun appTextFieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
@@ -255,14 +256,6 @@ fun AuthScreen(
             Text(it, modifier = Modifier.padding(top = 12.dp), color = ErrorText)
         }
 
-        if (!debugMessage.isNullOrBlank()) {
-            Text(
-                text = debugMessage,
-                modifier = Modifier.padding(top = 12.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = SoftText,
-            )
-        }
     }
 }
 
@@ -632,7 +625,7 @@ fun UploadScreen(
                     Text("📷")
                 }
                 Text("Upload outfit photos", modifier = Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text("Choose 1 to 5 photos and add an occasion.", modifier = Modifier.padding(top = 6.dp), color = SoftText)
+                Text("Choose 1 to 5 photos, max 10 MB each, and add an occasion.", modifier = Modifier.padding(top = 6.dp), color = SoftText)
 
                 Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
@@ -667,17 +660,19 @@ fun UploadScreen(
         OutlinedTextField(
             colors = appTextFieldColors(),
             value = state.occasion,
-            onValueChange = onOccasionChange,
+            onValueChange = { onOccasionChange(it.take(OCCASION_MAX_LENGTH)) },
             label = { Text("Occasion") },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.loading,
             shape = RoundedCornerShape(18.dp),
+            singleLine = true,
+            supportingText = { Text("${state.occasion.length}/$OCCASION_MAX_LENGTH") },
         )
 
         Button(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.loading && state.selectedPhotos.isNotEmpty(),
+            enabled = !state.loading && state.selectedPhotos.isNotEmpty() && state.occasion.trim().isNotEmpty(),
             shape = RoundedCornerShape(999.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
         ) {
@@ -686,6 +681,9 @@ fun UploadScreen(
 
         if (state.selectedPhotos.isEmpty()) {
             Text("Choose at least 1 photo before publishing.", color = SoftText)
+        }
+        if (state.occasion.trim().isEmpty()) {
+            Text("Add an occasion before publishing.", color = SoftText)
         }
         if (state.message.isNotBlank()) {
             Text(state.message, color = SuccessText)
@@ -950,7 +948,6 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 @Composable
 fun PostDetailScreen(
     state: PostDetailUiState,
-    onBack: () -> Unit,
     onOpenAuthorProfile: (() -> Unit)? = null,
     onToggleKeep: (() -> Unit)? = null,
     onDeletePost: (() -> Unit)? = null,
@@ -991,18 +988,9 @@ fun PostDetailScreen(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(
-                    onClick = onBack,
-                    modifier = Modifier.height(44.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
-                ) {
-                    Text("Back", fontWeight = FontWeight.SemiBold)
-                }
-
                 if (state.isOwnPost && onToggleKeep != null) {
                     Box {
                         Button(
@@ -1054,10 +1042,11 @@ fun PostDetailScreen(
                             Text("Edit occasion", fontWeight = FontWeight.SemiBold)
                             OutlinedTextField(
                                 value = editOccasion,
-                                onValueChange = { editOccasion = it },
+                                onValueChange = { editOccasion = it.take(OCCASION_MAX_LENGTH) },
                                 modifier = Modifier.fillMaxWidth(),
                                 label = { Text("Occasion") },
                                 singleLine = true,
+                                supportingText = { Text("${editOccasion.length}/$OCCASION_MAX_LENGTH") },
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Button(
@@ -1119,7 +1108,6 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
             Text("Loading ${state.title.lowercase()}...", color = SoftText)
         }
@@ -1134,11 +1122,31 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
                 color = Color.White,
                 shadowElevation = 1.dp,
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(person.displayName, fontWeight = FontWeight.SemiBold)
-                    Text(person.username, color = SoftText)
-                    if (person.bio.isNotBlank()) {
-                        Text(person.bio, color = SoftText)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!person.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = person.avatarUrl,
+                            contentDescription = person.displayName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(Brush.verticalGradient(listOf(Color(0xFFF6C4D5), Color(0xFFDDB7FF))), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("✨") }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(person.displayName, fontWeight = FontWeight.SemiBold)
+                        Text(person.username, color = SoftText)
                     }
                 }
             }
@@ -1160,7 +1168,6 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
             Text("Loading ${state.title.lowercase()}...", color = SoftText)
         }
@@ -1168,28 +1175,47 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
         if (!state.loading && state.posts.isEmpty()) {
             Text("No posts here yet.", color = SoftText)
         }
-        state.posts.forEach { post ->
-            Surface(
-                modifier = Modifier.clickable { onOpenPost(post.id) },
-                shape = RoundedCornerShape(20.dp),
-                color = Color.White,
-                shadowElevation = 1.dp,
-            ) {
-                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (!post.imageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = post.imageUrl,
-                            contentDescription = post.occasion,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .width(86.dp)
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                        )
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                        Text(post.occasion, fontWeight = FontWeight.SemiBold)
-                        Text("${post.yesCount} yes · ${post.noCount} no", color = SoftText)
+        if (!state.loading && state.posts.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                state.posts.chunked(3).forEachIndexed { rowIndex, row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        row.forEachIndexed { columnIndex, post ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .clickable { onOpenPost(post.id) },
+                            ) {
+                                if (!post.imageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = post.imageUrl,
+                                        contentDescription = post.occasion,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    val colors = when ((rowIndex + columnIndex) % 3) {
+                                        0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                                        1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                                        else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
+                                    }
+                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .fillMaxWidth()
+                                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                        .padding(8.dp),
+                                ) {
+                                    Text("${post.yesCount} yes · ${post.noCount} no", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                        repeat(3 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -1221,7 +1247,6 @@ fun EditProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Edit profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -1262,7 +1287,7 @@ fun EditProfileScreen(
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Profile photo", fontWeight = FontWeight.SemiBold)
                         Text("Upload a square photo if you can. Max 5 MB. This is optional.", color = SoftText, style = MaterialTheme.typography.bodySmall)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = onPickPhoto,
                                 enabled = !state.loading && !state.saving,
@@ -1399,7 +1424,6 @@ fun ActivityScreen(state: ActivityUiState, onOpenProfile: (String) -> Unit, onOp
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Activity", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (state.loading) {
             Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
                 Text("Loading activity...", modifier = Modifier.padding(16.dp), color = SoftText)

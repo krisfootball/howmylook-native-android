@@ -207,6 +207,17 @@ fun AppNavigation(viewModel: AppViewModel) {
                                                 restoreState = true
                                             }
                                         }
+                                    } else if (item.route == AppRoute.Home) {
+                                        val popped = navController.popBackStack(AppRoute.Home.name, inclusive = false)
+                                        if (!popped) {
+                                            navController.navigate(AppRoute.Home.name) {
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
                                     } else {
                                         navController.navigate(item.route.name) {
                                             popUpTo(navController.graph.startDestinationId) {
@@ -374,23 +385,6 @@ fun AppNavigation(viewModel: AppViewModel) {
             composable(AppRoute.PostDetail.name) {
                 PostDetailScreen(
                     state = viewModel.postDetailUiState,
-                    onBack = {
-                        val backRoute = when (viewModel.postDetailUiState.fromRoute) {
-                            AppRoute.Search.name -> AppRoute.Search.name
-                            AppRoute.Profile.name -> AppRoute.Profile.name
-                            AppRoute.VoteHistory.name -> AppRoute.VoteHistory.name
-                            AppRoute.Activity.name -> AppRoute.Activity.name
-                            else -> null
-                        }
-                        if (backRoute != null) {
-                            navController.navigate(backRoute) {
-                                popUpTo(AppRoute.PostDetail.name) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        } else {
-                            navController.popBackStack()
-                        }
-                    },
                     onOpenAuthorProfile = {
                         viewModel.openPostAuthorProfile()
                         navController.navigate(AppRoute.Profile.name) {

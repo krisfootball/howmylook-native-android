@@ -20,7 +20,7 @@ data class FollowListPerson(
     val id: String,
     val displayName: String,
     val username: String,
-    val bio: String,
+    val avatarUrl: String? = null,
 )
 
 data class FollowListUiState(

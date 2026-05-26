@@ -51,6 +51,8 @@ import com.howmylook.app.domain.AppStep
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
+private const val MAX_POST_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
+
 class AppViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val authBootstrapRepository = AuthBootstrapRepository()
@@ -870,11 +872,24 @@ class AppViewModel : ViewModel() {
             uploadUiState = uploadUiState.copy(error = "Add at least 1 photo before publishing.")
             return
         }
+        if (uploadUiState.occasion.trim().isBlank()) {
+            uploadUiState = uploadUiState.copy(error = "Add an occasion before publishing.")
+            return
+        }
 
         viewModelScope.launch {
             uploadUiState = uploadUiState.copy(loading = true, error = null, message = "Publishing...")
             val photoPayloads = uploadUiState.selectedPhotos.map { uriString ->
                 com.howmylook.app.data.upload.loadUploadPhotoPayload(contentResolver, uriString)
+            }
+            val oversizedPhoto = photoPayloads.firstOrNull { it.bytes.size > MAX_POST_PHOTO_SIZE_BYTES }
+            if (oversizedPhoto != null) {
+                uploadUiState = uploadUiState.copy(
+                    loading = false,
+                    error = "Each post photo must be 10 MB or smaller.",
+                    message = "",
+                )
+                return@launch
             }
 
             uploadRepository.createPendingPost(
