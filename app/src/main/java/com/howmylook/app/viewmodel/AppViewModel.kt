@@ -451,6 +451,7 @@ class AppViewModel : ViewModel() {
 
     fun updateSearchQuery(value: String) {
         searchUiState = searchUiState.copy(query = value)
+        loadSearch()
     }
 
     fun requestUploadPhotoPicker() {
