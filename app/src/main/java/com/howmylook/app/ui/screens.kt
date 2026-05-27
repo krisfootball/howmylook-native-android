@@ -504,7 +504,13 @@ private fun LockBanner() {
 
 @Composable
 fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPost: (String) -> Unit) {
-    val query = state.query.trim().lowercase()
+    var localQuery by remember { mutableStateOf(state.query) }
+
+    if (state.query != localQuery) {
+        localQuery = state.query
+    }
+
+    val query = localQuery.trim().lowercase()
     val filteredLooks = if (query.isBlank()) state.looks else state.looks.filter {
         it.occasion.lowercase().contains(query) ||
             it.authorDisplayName.lowercase().contains(query) ||
@@ -526,8 +532,11 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
         Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
+                    value = localQuery,
+                    onValueChange = {
+                        localQuery = it
+                        onQueryChange(it)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search") },
                     singleLine = true,
