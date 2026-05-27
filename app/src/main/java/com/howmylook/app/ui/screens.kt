@@ -865,7 +865,7 @@ fun ProfileScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Photos disappear after 30 days unless you keep them.", color = MaterialTheme.colorScheme.onSurface)
-                    Text("$keptCount of 10 kept", color = AccentPink, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text("$keptCount of 10 kept", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1072,7 +1072,7 @@ fun PostDetailScreen(
                                 Button(
                                     onClick = { editExpanded = false },
                                     shape = RoundedCornerShape(999.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = Color(0xFF0F172A)),
                                 ) {
                                     Text("Cancel")
                                 }
@@ -1301,7 +1301,7 @@ fun EditProfileScreen(
                                 onClick = onPickPhoto,
                                 enabled = !state.loading && !state.saving,
                                 shape = RoundedCornerShape(999.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = MaterialTheme.colorScheme.onSurface),
+                                colors = ButtonDefaults.buttonColors(containerColor = PinkSurface, contentColor = Color(0xFF0F172A)),
                             ) {
                                 Text(
                                     when {
