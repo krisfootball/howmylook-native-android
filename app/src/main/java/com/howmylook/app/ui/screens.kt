@@ -404,7 +404,54 @@ fun HomeScreen(
             return
         }
 
-        if (!card.imageUrl.isNullOrBlank()) {
+        if (card.postKind == "compare" && !card.compareLeftImageUrl.isNullOrBlank() && !card.compareRightImageUrl.isNullOrBlank()) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .clickable { onVoteNo() },
+                ) {
+                    AsyncImage(
+                        model = card.compareLeftImageUrl,
+                        contentDescription = "Left compare look",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .background(Color(0x66000000), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text("✓ Pick left", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .clickable { onVoteYes() },
+                ) {
+                    AsyncImage(
+                        model = card.compareRightImageUrl,
+                        contentDescription = "Right compare look",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .background(Color(0x66000000), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text("✓ Pick right", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        } else if (!card.imageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = card.imageUrl,
                 contentDescription = card.occasion,
@@ -460,12 +507,26 @@ fun HomeScreen(
                         .padding(vertical = 2.dp)
                 )
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
-                Text("Yes ${card.yesCount} · No ${card.noCount}", color = Color.White.copy(alpha = 0.78f))
+                Text(
+                    if (card.postKind == "compare") {
+                        "Left ${card.compareLeftPickCount} · Right ${card.compareRightPickCount}"
+                    } else {
+                        "Liked ${card.yesCount} · Skipped ${card.noCount}"
+                    },
+                    color = Color.White.copy(alpha = 0.78f),
+                )
                 if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
                     Text(
                         "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available now.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.74f),
+                    )
+                }
+                if (card.postKind == "compare") {
+                    Text(
+                        "Pick the outfit you like better.",
+                        color = Color.White.copy(alpha = 0.82f),
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -474,13 +535,13 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White),
                         shape = RoundedCornerShape(999.dp),
-                    ) { Text(AppConfig.noLabel) }
+                    ) { Text(if (card.postKind == "compare") "Left" else "✕ ${AppConfig.skipLabel}") }
                     Button(
                         onClick = onVoteYes,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                         shape = RoundedCornerShape(999.dp),
-                    ) { Text(AppConfig.yesLabel) }
+                    ) { Text(if (card.postKind == "compare") "Right" else "✓ ${AppConfig.likeLabel}") }
                 }
             }
         }
@@ -606,6 +667,7 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
 @Composable
 fun UploadScreen(
     state: UploadUiState,
+    onPostKindChange: (String) -> Unit,
     onOccasionChange: (String) -> Unit,
     onPickPhotos: () -> Unit,
     onTakePhoto: () -> Unit,
@@ -634,7 +696,24 @@ fun UploadScreen(
                     Text("📷")
                 }
                 Text("Upload outfit photos", modifier = Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text("Choose 1 to 5 photos, max 10 MB each, and add an occasion.", modifier = Modifier.padding(top = 6.dp), color = SoftText)
+                Text(if (state.postKind == "compare") "Choose exactly 2 photos for a side-by-side compare post." else "Choose 1 to 5 photos, max 10 MB each, and add an occasion.", modifier = Modifier.padding(top = 6.dp), color = SoftText)
+
+                Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { onPostKindChange("single") },
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (state.postKind == "single") Color.White else DarkButton, containerColor = if (state.postKind == "single") DarkButton else Color.Transparent),
+                    ) {
+                        Text("Single")
+                    }
+                    OutlinedButton(
+                        onClick = { onPostKindChange("compare") },
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (state.postKind == "compare") Color.White else DarkButton, containerColor = if (state.postKind == "compare") DarkButton else Color.Transparent),
+                    ) {
+                        Text("Compare")
+                    }
+                }
 
                 Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
@@ -658,7 +737,7 @@ fun UploadScreen(
         if (state.selectedPhotoNames.isNotEmpty()) {
             Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Selected photos: ${state.selectedPhotos.size}", fontWeight = FontWeight.SemiBold)
+                    Text(if (state.postKind == "compare") "Selected compare photos: ${state.selectedPhotos.size}/2" else "Selected photos: ${state.selectedPhotos.size}", fontWeight = FontWeight.SemiBold)
                     state.selectedPhotoNames.forEachIndexed { index, name ->
                         Text("• ${name.ifBlank { "Photo ${index + 1}" }}", color = SoftText)
                     }
@@ -681,14 +760,18 @@ fun UploadScreen(
         Button(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.loading && state.selectedPhotos.isNotEmpty() && state.occasion.trim().isNotEmpty(),
+            enabled = !state.loading && ((state.postKind == "compare" && state.selectedPhotos.size == 2) || (state.postKind != "compare" && state.selectedPhotos.isNotEmpty())) && state.occasion.trim().isNotEmpty(),
             shape = RoundedCornerShape(999.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
         ) {
-            Text(if (state.loading) "Publishing..." else "Publish look")
+            Text(if (state.loading) "Publishing..." else if (state.postKind == "compare") "Publish compare" else "Publish look")
         }
 
-        if (state.selectedPhotos.isEmpty()) {
+        if (state.postKind == "compare") {
+            if (state.selectedPhotos.size != 2) {
+                Text("Choose exactly 2 photos before publishing a compare post.", color = SoftText)
+            }
+        } else if (state.selectedPhotos.isEmpty()) {
             Text("Choose at least 1 photo before publishing.", color = SoftText)
         }
         if (state.occasion.trim().isEmpty()) {
@@ -850,8 +933,8 @@ fun ProfileScreen(
                         Box(modifier = Modifier.weight(1f)) { ProfileStatCard("FOLLOWING", state.following.toString(), onOpenFollowing) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("YES GIVEN", state.yesGiven.toString(), onOpenYesGiven) }
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("NO GIVEN", state.noGiven.toString(), onOpenNoGiven) }
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("LIKED", state.likedGiven.toString(), onOpenYesGiven) }
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("SKIPPED", state.skippedGiven.toString(), onOpenNoGiven) }
                     }
                 }
             }

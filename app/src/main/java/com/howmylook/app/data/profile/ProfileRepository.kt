@@ -13,6 +13,9 @@ private data class ProfileDetailsDto(
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("bio") val bio: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("total_liked_given") val totalLikedGiven: Int? = null,
+    @SerialName("total_skipped_given") val totalSkippedGiven: Int? = null,
+    @SerialName("total_picked_given") val totalPickedGiven: Int? = null,
 )
 
 @Serializable
@@ -32,7 +35,7 @@ class ProfileRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val profile = client.from("profiles")
-                .select(columns = Columns.list("username", "display_name", "bio", "avatar_url")) {
+                .select(columns = Columns.list("username", "display_name", "bio", "avatar_url", "total_liked_given", "total_skipped_given", "total_picked_given")) {
                     filter { eq("id", userId) }
                     limit(1)
                 }
@@ -86,8 +89,8 @@ class ProfileRepository {
                     .mapNotNull { it.id }
                     .toSet()
             }
-            val yesGivenCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
-            val noGivenCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
+            val fallbackLikedCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
+            val fallbackSkippedCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
 
             val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
 
@@ -98,8 +101,9 @@ class ProfileRepository {
                 username = profile?.username?.let { "@$it" } ?: "@username",
                 bio = profile?.bio ?: "No bio yet.",
                 avatarUrl = profile?.avatarUrl,
-                yesGiven = yesGivenCount,
-                noGiven = noGivenCount,
+                likedGiven = profile?.totalLikedGiven ?: fallbackLikedCount,
+                skippedGiven = profile?.totalSkippedGiven ?: fallbackSkippedCount,
+                pickedGiven = profile?.totalPickedGiven ?: 0,
                 followers = followersCount,
                 following = followingCount,
                 posts = posts,

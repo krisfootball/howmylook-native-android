@@ -23,8 +23,13 @@ private data class NewPostDto(
     @SerialName("user_id") val userId: String,
     @SerialName("image_url") val imageUrl: String,
     @SerialName("caption") val caption: String? = null,
+    @SerialName("post_kind") val postKind: String = "single",
+    @SerialName("compare_left_image_url") val compareLeftImageUrl: String? = null,
+    @SerialName("compare_right_image_url") val compareRightImageUrl: String? = null,
     @SerialName("yes_count") val yesCount: Int = 0,
     @SerialName("no_count") val noCount: Int = 0,
+    @SerialName("compare_left_pick_count") val compareLeftPickCount: Int = 0,
+    @SerialName("compare_right_pick_count") val compareRightPickCount: Int = 0,
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("moderation_status") val moderationStatus: String = "pending",
     @SerialName("keep_forever") val keepForever: Boolean = false,
@@ -44,10 +49,19 @@ class UploadRepository {
         userId: String,
         occasion: String,
         photos: List<UploadPhotoPayload>,
+        postKind: String = "single",
     ): Result<String> {
         return runCatching {
-            require(photos.isNotEmpty()) { "Add at least 1 photo before publishing." }
-            require(photos.size <= 5) { "You can post up to 5 photos." }
+            when (postKind) {
+                "single" -> {
+                    require(photos.isNotEmpty()) { "Add at least 1 photo before publishing." }
+                    require(photos.size <= 5) { "You can post up to 5 photos." }
+                }
+                "compare" -> {
+                    require(photos.size == 2) { "Compare posts need exactly 2 photos." }
+                }
+                else -> error("Unsupported post type.")
+            }
 
             val client = SupabaseProvider.create(config)
             val bucket = client.storage.from("post-images")
@@ -62,6 +76,8 @@ class UploadRepository {
 
             val expiresAt = Instant.now().plus(30, ChronoUnit.DAYS).toString()
             val primaryImageUrl = uploadedUrls.first()
+            val compareLeft = if (postKind == "compare") uploadedUrls.getOrNull(0) else null
+            val compareRight = if (postKind == "compare") uploadedUrls.getOrNull(1) else null
 
             val postId = client.from("posts")
                 .insert(
@@ -69,6 +85,9 @@ class UploadRepository {
                         userId = userId,
                         imageUrl = primaryImageUrl,
                         caption = occasion.trim().ifBlank { null },
+                        postKind = postKind,
+                        compareLeftImageUrl = compareLeft,
+                        compareRightImageUrl = compareRight,
                         expiresAt = expiresAt,
                     )
                 ) {

@@ -35,11 +35,12 @@ class VoteHistoryRepository {
                 }
                 .decodeList<VoteRowDto>()
 
+            val title = if (value == "yes") "Liked" else "Skipped"
             val postIds = votes.map { it.postId }
             if (postIds.isEmpty()) {
                 return@runCatching VoteHistoryUiState(
                     loading = false,
-                    title = if (value == "yes") "Yes given" else "No given",
+                    title = title,
                     posts = emptyList(),
                     error = null,
                 )
@@ -69,7 +70,7 @@ class VoteHistoryRepository {
 
             VoteHistoryUiState(
                 loading = false,
-                title = if (value == "yes") "Yes given" else "No given",
+                title = title,
                 posts = ordered,
                 error = null,
             )

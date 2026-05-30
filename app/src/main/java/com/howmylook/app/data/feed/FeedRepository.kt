@@ -32,7 +32,7 @@ class FeedRepository {
             val client = SupabaseProvider.create(config)
 
             val posts = client.from("posts")
-                .select(columns = Columns.list("id", "user_id", "image_url", "caption", "yes_count", "no_count", "created_at")) {
+                .select(columns = Columns.list("id", "user_id", "image_url", "caption", "post_kind", "compare_left_image_url", "compare_right_image_url", "yes_count", "no_count", "compare_left_pick_count", "compare_right_pick_count", "created_at")) {
                     filter {
                         eq("is_active", true)
                         eq("moderation_status", "approved")
@@ -59,11 +59,17 @@ class FeedRepository {
                 .map { it.followingId }
                 .toSet()
 
+            fun ratingTotal(post: RatingQueuePostDto): Int = if (post.postKind == "compare") {
+                post.compareLeftPickCount + post.compareRightPickCount
+            } else {
+                post.yesCount + post.noCount
+            }
+
             val filteredPosts = posts.filter { post -> post.id !in ratedPostIds }
-            val underFiveFollowed = filteredPosts.filter { (it.yesCount + it.noCount) < 5 && followingIds.contains(it.userId) }
-            val underFiveOthers = filteredPosts.filter { (it.yesCount + it.noCount) < 5 && !followingIds.contains(it.userId) }
-            val fallbackFollowed = filteredPosts.filter { (it.yesCount + it.noCount) >= 5 && followingIds.contains(it.userId) }
-            val fallbackOthers = filteredPosts.filter { (it.yesCount + it.noCount) >= 5 && !followingIds.contains(it.userId) }
+            val underFiveFollowed = filteredPosts.filter { ratingTotal(it) < 5 && followingIds.contains(it.userId) }
+            val underFiveOthers = filteredPosts.filter { ratingTotal(it) < 5 && !followingIds.contains(it.userId) }
+            val fallbackFollowed = filteredPosts.filter { ratingTotal(it) >= 5 && followingIds.contains(it.userId) }
+            val fallbackOthers = filteredPosts.filter { ratingTotal(it) >= 5 && !followingIds.contains(it.userId) }
             val orderedPosts = underFiveFollowed + underFiveOthers + fallbackFollowed + fallbackOthers
 
             val authorIds = orderedPosts.map { it.userId }.distinct()
@@ -93,8 +99,9 @@ class FeedRepository {
                 error("Sign in first before rating looks.")
             }
 
+            val functionName = if (voteValue == "left" || voteValue == "right") "cast_decision_vote" else "cast_vote"
             client.postgrest.rpc(
-                function = "cast_vote",
+                function = functionName,
                 parameters = buildJsonObject {
                     put("target_post_id", JsonPrimitive(postId))
                     put("vote_value", JsonPrimitive(voteValue))
@@ -103,14 +110,11 @@ class FeedRepository {
         }.fold(
             onSuccess = { Result.success(it) },
             onFailure = { error ->
-                val message = error.message.orEmpty()
-                val friendlyMessage = if (
-                    message.lowercase().contains("cast_vote") ||
-                    message.lowercase().contains("function")
-                ) {
-                    "Voting needs the SQL function in SUPABASE_RPC_CAST_VOTE.sql applied in Supabase before this flow can work."
-                } else {
-                    error.message ?: "Unable to save vote."
+                val message = error.message.orEmpty().lowercase()
+                val friendlyMessage = when {
+                    message.contains("cast_decision_vote") -> "Compare voting needs the SQL function in SUPABASE_RPC_CAST_DECISION_VOTE.sql applied in Supabase before this flow can work."
+                    message.contains("cast_vote") || message.contains("function") -> "Voting needs the SQL function in SUPABASE_RPC_CAST_VOTE.sql applied in Supabase before this flow can work."
+                    else -> error.message ?: "Unable to save vote."
                 }
                 Result.failure(IllegalStateException(friendlyMessage, error))
             }

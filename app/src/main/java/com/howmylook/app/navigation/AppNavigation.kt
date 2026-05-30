@@ -308,6 +308,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                 } else {
                     UploadScreen(
                         state = viewModel.uploadUiState,
+                        onPostKindChange = viewModel::updateUploadPostKind,
                         onOccasionChange = viewModel::updateUploadOccasion,
                         onPickPhotos = viewModel::requestUploadPhotoPicker,
                         onTakePhoto = viewModel::requestUploadCameraCapture,

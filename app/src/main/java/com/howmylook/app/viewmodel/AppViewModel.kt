@@ -438,11 +438,25 @@ class AppViewModel : ViewModel() {
     }
 
     fun voteYes() {
-        submitVote("yes")
+        val card = currentCard ?: return
+        submitVote(if (card.postKind == "compare") "right" else "yes")
     }
 
     fun voteNo() {
-        submitVote("no")
+        val card = currentCard ?: return
+        submitVote(if (card.postKind == "compare") "left" else "no")
+    }
+
+    fun updateUploadPostKind(value: String) {
+        val trimmedPhotos = if (value == "compare") uploadUiState.selectedPhotos.take(2) else uploadUiState.selectedPhotos.take(5)
+        val trimmedNames = if (value == "compare") uploadUiState.selectedPhotoNames.take(2) else uploadUiState.selectedPhotoNames.take(5)
+        uploadUiState = uploadUiState.copy(
+            postKind = value,
+            selectedPhotos = trimmedPhotos,
+            selectedPhotoNames = trimmedNames,
+            error = null,
+            message = "",
+        )
     }
 
     fun updateUploadOccasion(value: String) {
@@ -471,7 +485,8 @@ class AppViewModel : ViewModel() {
     }
 
     fun setSelectedUploadPhotos(photoUris: List<String>) {
-        val limited = photoUris.take(5)
+        val limit = if (uploadUiState.postKind == "compare") 2 else 5
+        val limited = photoUris.take(limit)
         uploadUiState = uploadUiState.copy(
             selectedPhotos = limited,
             selectedPhotoNames = limited.mapIndexed { index, _ -> "Photo ${index + 1}" },
@@ -688,7 +703,7 @@ class AppViewModel : ViewModel() {
     fun openYesGiven() {
         val userId = selectedPersonProfileId ?: currentUserId ?: return
         viewModelScope.launch {
-            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Yes given", error = null)
+            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Liked", error = null)
             voteHistoryRepository.load(supabaseConfig, userId, "yes")
                 .onSuccess { state ->
                     voteHistoryUiState = state
@@ -696,7 +711,7 @@ class AppViewModel : ViewModel() {
                 .onFailure { error ->
                     voteHistoryUiState = voteHistoryUiState.copy(
                         loading = false,
-                        title = "Yes given",
+                        title = "Liked",
                         error = error.message ?: "Unable to load Yes history.",
                     )
                 }
@@ -706,7 +721,7 @@ class AppViewModel : ViewModel() {
     fun openNoGiven() {
         val userId = selectedPersonProfileId ?: currentUserId ?: return
         viewModelScope.launch {
-            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "No given", error = null)
+            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Skipped", error = null)
             voteHistoryRepository.load(supabaseConfig, userId, "no")
                 .onSuccess { state ->
                     voteHistoryUiState = state
@@ -714,7 +729,7 @@ class AppViewModel : ViewModel() {
                 .onFailure { error ->
                     voteHistoryUiState = voteHistoryUiState.copy(
                         loading = false,
-                        title = "No given",
+                        title = "Skipped",
                         error = error.message ?: "Unable to load No history.",
                     )
                 }
@@ -869,7 +884,12 @@ class AppViewModel : ViewModel() {
             return
         }
 
-        if (uploadUiState.selectedPhotos.isEmpty()) {
+        if (uploadUiState.postKind == "compare") {
+            if (uploadUiState.selectedPhotos.size != 2) {
+                uploadUiState = uploadUiState.copy(error = "Compare posts need exactly 2 photos.")
+                return
+            }
+        } else if (uploadUiState.selectedPhotos.isEmpty()) {
             uploadUiState = uploadUiState.copy(error = "Add at least 1 photo before publishing.")
             return
         }
@@ -898,11 +918,12 @@ class AppViewModel : ViewModel() {
                 userId = userId,
                 occasion = uploadUiState.occasion,
                 photos = photoPayloads,
+                postKind = uploadUiState.postKind,
             )
                 .onSuccess { postId ->
                     uploadUiState = UploadUiState(
                         loading = false,
-                        message = "Post submitted for moderation. It should appear after approval.",
+                        message = "Posted. It should be visible now.",
                         lastCreatedPostId = postId,
                     )
                     loadProfile()
@@ -923,7 +944,7 @@ class AppViewModel : ViewModel() {
         if (homeUiState.isLoading) return
 
         viewModelScope.launch {
-            homeUiState = homeUiState.copy(isLoading = true, statusMessage = "Saving vote...")
+            homeUiState = homeUiState.copy(isLoading = true, statusMessage = if (card.postKind == "compare") "Saving pick..." else "Saving vote...")
             feedRepository.castVote(supabaseConfig, card.id, value)
                 .onSuccess { result ->
                     val nextUnlockVotes = result.loginRatingVotesCompleted
@@ -939,7 +960,13 @@ class AppViewModel : ViewModel() {
                     val nextMessage = if (unlockedNow) {
                         ""
                     } else {
-                        "${if (value == "yes") "Yes" else "No"} saved. $remaining ratings left."
+                        when (value) {
+                            "yes" -> "Liked saved. $remaining ratings left."
+                            "no" -> "Skipped saved. $remaining ratings left."
+                            "left" -> "Picked left. $remaining ratings left."
+                            "right" -> "Picked right. $remaining ratings left."
+                            else -> "Saved. $remaining ratings left."
+                        }
                     }
                     bootstrapMessage = nextMessage
                     sessionState = sessionState.copy(

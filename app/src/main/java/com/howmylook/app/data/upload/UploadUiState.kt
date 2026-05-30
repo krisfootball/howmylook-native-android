@@ -2,6 +2,7 @@ package com.howmylook.app.data.upload
 
 data class UploadUiState(
     val loading: Boolean = false,
+    val postKind: String = "single",
     val occasion: String = "",
     val selectedPhotos: List<String> = emptyList(),
     val selectedPhotoNames: List<String> = emptyList(),
