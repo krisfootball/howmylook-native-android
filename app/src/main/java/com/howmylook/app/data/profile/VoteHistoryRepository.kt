@@ -14,11 +14,6 @@ private data class VoteRowDto(
 )
 
 @Serializable
-private data class DecisionVoteRowDto(
-    @SerialName("post_id") val postId: String,
-)
-
-@Serializable
 private data class VoteHistoryPostDto(
     @SerialName("id") val id: String,
     @SerialName("caption") val caption: String? = null,
@@ -37,26 +32,20 @@ class VoteHistoryRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val isPicked = value == "picked"
-            val postIds = if (isPicked) {
-                client.from("decision_votes")
-                    .select(columns = Columns.list("post_id")) {
-                        filter {
-                            eq("user_id", userId)
-                        }
-                    }
-                    .decodeList<DecisionVoteRowDto>()
-                    .map { it.postId }
-            } else {
-                client.from("votes")
-                    .select(columns = Columns.list("post_id")) {
-                        filter {
-                            eq("user_id", userId)
+            val postIds = client.from("votes")
+                .select(columns = Columns.list("post_id")) {
+                    filter {
+                        eq("user_id", userId)
+                        if (isPicked) {
+                            eq("vote_kind", "compare")
+                        } else {
                             eq("value", value)
+                            eq("vote_kind", "single")
                         }
                     }
-                    .decodeList<VoteRowDto>()
-                    .map { it.postId }
-            }
+                }
+                .decodeList<VoteRowDto>()
+                .map { it.postId }
 
             val title = when (value) {
                 "yes" -> "Liked"
