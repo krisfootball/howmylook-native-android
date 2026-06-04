@@ -736,6 +736,25 @@ class AppViewModel : ViewModel() {
         }
     }
 
+
+    fun openPickedGiven() {
+        val userId = selectedPersonProfileId ?: currentUserId ?: return
+        viewModelScope.launch {
+            voteHistoryUiState = voteHistoryUiState.copy(loading = true, title = "Picked", error = null)
+            voteHistoryRepository.load(supabaseConfig, userId, "picked")
+                .onSuccess { state ->
+                    voteHistoryUiState = state
+                }
+                .onFailure { error ->
+                    voteHistoryUiState = voteHistoryUiState.copy(
+                        loading = false,
+                        title = "Picked",
+                        error = error.message ?: "Unable to load Picked history.",
+                    )
+                }
+        }
+    }
+
     fun startEditProfile() {
         val userId = currentUserId ?: return
         viewModelScope.launch {
@@ -944,7 +963,15 @@ class AppViewModel : ViewModel() {
         if (homeUiState.isLoading) return
 
         viewModelScope.launch {
-            homeUiState = homeUiState.copy(isLoading = true, statusMessage = if (card.postKind == "compare") "Saving pick..." else "Saving vote...")
+            homeUiState = homeUiState.copy(
+                isLoading = true,
+                statusMessage = if (card.postKind == "compare") "Saving pick..." else "Saving vote...",
+                compareSelection = when (value) {
+                    "left" -> "left"
+                    "right" -> "right"
+                    else -> null
+                },
+            )
             feedRepository.castVote(supabaseConfig, card.id, value)
                 .onSuccess { result ->
                     val nextUnlockVotes = result.loginRatingVotesCompleted
@@ -978,6 +1005,7 @@ class AppViewModel : ViewModel() {
                         isLoading = false,
                         destination = if (unlockedNow) HomeDestination.UNLOCKED_HOME else HomeDestination.LOCKED_HOME,
                         statusMessage = nextMessage,
+                        compareSelection = null,
                     )
                     loadSearch()
                     loadProfile()
@@ -986,7 +1014,7 @@ class AppViewModel : ViewModel() {
                     val message = error.message ?: "Unable to save vote."
                     bootstrapMessage = message
                     sessionState = sessionState.copy(bootstrapMessage = message)
-                    homeUiState = homeUiState.copy(isLoading = false, statusMessage = message)
+                    homeUiState = homeUiState.copy(isLoading = false, statusMessage = message, compareSelection = null)
                 }
         }
     }

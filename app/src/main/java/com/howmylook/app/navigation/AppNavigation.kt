@@ -345,6 +345,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                             viewModel.openNoGiven()
                             navController.navigate(AppRoute.VoteHistory.name)
                         },
+                        onOpenPickedGiven = {
+                            viewModel.openPickedGiven()
+                            navController.navigate(AppRoute.VoteHistory.name)
+                        },
                         onEditProfile = {
                             viewModel.startEditProfile()
                             navController.navigate(AppRoute.EditProfile.name)

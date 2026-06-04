@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -41,6 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -410,7 +413,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxSize()
-                        .clickable { onVoteNo() },
+                        .clickable(enabled = !homeUiState.isLoading) { onVoteNo() },
                 ) {
                     AsyncImage(
                         model = card.compareLeftImageUrl,
@@ -418,21 +421,19 @@ fun HomeScreen(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                            .background(Color(0x66000000), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Text("✓ Pick left", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    if (homeUiState.compareSelection == "left") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0x8038A169)),
+                        )
                     }
                 }
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxSize()
-                        .clickable { onVoteYes() },
+                        .clickable(enabled = !homeUiState.isLoading) { onVoteYes() },
                 ) {
                     AsyncImage(
                         model = card.compareRightImageUrl,
@@ -440,14 +441,12 @@ fun HomeScreen(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                            .background(Color(0x66000000), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Text("✓ Pick right", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    if (homeUiState.compareSelection == "right") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0x8038A169)),
+                        )
                     }
                 }
             }
@@ -507,14 +506,12 @@ fun HomeScreen(
                         .padding(vertical = 2.dp)
                 )
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (card.postKind == "compare") {
-                        "Left ${card.compareLeftPickCount} · Right ${card.compareRightPickCount}"
-                    } else {
-                        "Liked ${card.yesCount} · Skipped ${card.noCount}"
-                    },
-                    color = Color.White.copy(alpha = 0.78f),
-                )
+                if (card.postKind != "compare") {
+                    Text(
+                        "Liked ${card.yesCount} · Skipped ${card.noCount}",
+                        color = Color.White.copy(alpha = 0.78f),
+                    )
+                }
                 if (sessionState.availablePostCount in 0 until AppConfig.unlockVoteCount) {
                     Text(
                         "Only ${sessionState.availablePostCount} rateable post${if (sessionState.availablePostCount == 1) " is" else "s are"} available now.",
@@ -523,27 +520,56 @@ fun HomeScreen(
                     )
                 }
                 if (card.postKind == "compare") {
-                    Text(
-                        "Pick the outfit you like better.",
-                        color = Color.White.copy(alpha = 0.82f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onVoteNo,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White),
-                        shape = RoundedCornerShape(999.dp),
-                    ) { Text(if (card.postKind == "compare") "Left" else "✕ ${AppConfig.skipLabel}") }
-                    Button(
-                        onClick = onVoteYes,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                        shape = RoundedCornerShape(999.dp),
-                    ) { Text(if (card.postKind == "compare") "Right" else "✓ ${AppConfig.likeLabel}") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ComparePickButton(
+                            selected = homeUiState.compareSelection == "left",
+                            enabled = !homeUiState.isLoading,
+                            onClick = onVoteNo,
+                        )
+                        ComparePickButton(
+                            selected = homeUiState.compareSelection == "right",
+                            enabled = !homeUiState.isLoading,
+                            onClick = onVoteYes,
+                        )
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = onVoteNo,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White),
+                            shape = RoundedCornerShape(999.dp),
+                        ) { Text("✕ ${AppConfig.skipLabel}") }
+                        Button(
+                            onClick = onVoteYes,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                            shape = RoundedCornerShape(999.dp),
+                        ) { Text("✓ ${AppConfig.likeLabel}") }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ComparePickButton(selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .size(58.dp)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = CircleShape,
+        color = if (selected) Color(0xFF22C55E) else Color.White.copy(alpha = 0.18f),
+        shadowElevation = if (selected) 2.dp else 0.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = "Pick outfit",
+                tint = Color.White,
+                modifier = Modifier.size(30.dp),
+            )
         }
     }
 }
@@ -796,6 +822,7 @@ fun ProfileScreen(
     onOpenFollowing: () -> Unit,
     onOpenYesGiven: () -> Unit,
     onOpenNoGiven: () -> Unit,
+    onOpenPickedGiven: () -> Unit,
     onEditProfile: () -> Unit,
     onOpenPost: (String) -> Unit,
     onLogOut: () -> Unit,
@@ -935,6 +962,7 @@ fun ProfileScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(modifier = Modifier.weight(1f)) { ProfileStatCard("LIKED", state.likedGiven.toString(), onOpenYesGiven) }
                         Box(modifier = Modifier.weight(1f)) { ProfileStatCard("SKIPPED", state.skippedGiven.toString(), onOpenNoGiven) }
+                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("PICKED", state.pickedGiven.toString(), onOpenPickedGiven) }
                     }
                 }
             }
