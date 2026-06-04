@@ -95,9 +95,14 @@ class VoteHistoryRepository {
                 ExploreLookCard(
                     id = it.id,
                     occasion = it.caption ?: "No occasion added yet",
+                    postKind = it.postKind,
                     imageUrl = imageUrl,
+                    compareLeftImageUrl = it.compareLeftImageUrl,
+                    compareRightImageUrl = it.compareRightImageUrl,
                     yesCount = yesCount,
                     noCount = noCount,
+                    compareLeftPickCount = it.compareLeftPickCount,
+                    compareRightPickCount = it.compareRightPickCount,
                     imageCount = imageCount,
                 )
             }

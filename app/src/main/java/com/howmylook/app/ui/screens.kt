@@ -520,17 +520,25 @@ fun HomeScreen(
                     )
                 }
                 if (card.postKind == "compare") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        ComparePickButton(
-                            selected = homeUiState.compareSelection == "left",
-                            enabled = !homeUiState.isLoading,
-                            onClick = onVoteNo,
-                        )
-                        ComparePickButton(
-                            selected = homeUiState.compareSelection == "right",
-                            enabled = !homeUiState.isLoading,
-                            onClick = onVoteYes,
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            ComparePickButton(
+                                selected = homeUiState.compareSelection == "left",
+                                enabled = !homeUiState.isLoading,
+                                onClick = onVoteNo,
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            ComparePickButton(
+                                selected = homeUiState.compareSelection == "right",
+                                enabled = !homeUiState.isLoading,
+                                onClick = onVoteYes,
+                            )
+                        }
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1307,7 +1315,26 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                     .clip(RoundedCornerShape(2.dp))
                                     .clickable { onOpenPost(post.id) },
                             ) {
-                                if (!post.imageUrl.isNullOrBlank()) {
+                                if (post.postKind == "compare" && !post.compareLeftImageUrl.isNullOrBlank() && !post.compareRightImageUrl.isNullOrBlank()) {
+                                    Row(modifier = Modifier.fillMaxSize()) {
+                                        AsyncImage(
+                                            model = post.compareLeftImageUrl,
+                                            contentDescription = "Compare left image",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxSize(),
+                                        )
+                                        AsyncImage(
+                                            model = post.compareRightImageUrl,
+                                            contentDescription = "Compare right image",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxSize(),
+                                        )
+                                    }
+                                } else if (!post.imageUrl.isNullOrBlank()) {
                                     AsyncImage(
                                         model = post.imageUrl,
                                         contentDescription = post.occasion,
@@ -1329,7 +1356,15 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                         .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
                                         .padding(8.dp),
                                 ) {
-                                    Text("${post.yesCount} yes · ${post.noCount} no", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        if (post.postKind == "compare") {
+                                            "${post.compareLeftPickCount + post.compareRightPickCount} picked"
+                                        } else {
+                                            "${post.yesCount} yes · ${post.noCount} no"
+                                        },
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
                                 }
                             }
                         }
