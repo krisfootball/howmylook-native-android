@@ -1,12 +1,14 @@
 package com.howmylook.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1089,7 +1091,22 @@ fun PostDetailScreen(
             .fillMaxSize()
             .background(Color.Black),
     ) {
-        if (state.imageUrls.isNotEmpty()) {
+        if (state.postKind == "compare" && !state.compareLeftImageUrl.isNullOrBlank() && !state.compareRightImageUrl.isNullOrBlank()) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                CompareDetailPane(
+                    imageUrl = state.compareLeftImageUrl,
+                    contentDescription = "Left compare photo",
+                    selected = state.selectedCompareSide == "left",
+                    modifier = Modifier.weight(1f),
+                )
+                CompareDetailPane(
+                    imageUrl = state.compareRightImageUrl,
+                    contentDescription = "Right compare photo",
+                    selected = state.selectedCompareSide == "right",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else if (state.imageUrls.isNotEmpty()) {
             AsyncImage(
                 model = state.imageUrls.first(),
                 contentDescription = state.occasion,
@@ -1210,7 +1227,15 @@ fun PostDetailScreen(
                         .padding(vertical = 2.dp)
                 )
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text("${state.yesCount} yes    ${state.noCount} no", color = Color.White.copy(alpha = 0.84f), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    if (state.postKind == "compare") {
+                        "${state.compareLeftPickCount + state.compareRightPickCount} picked"
+                    } else {
+                        "${state.yesCount} yes    ${state.noCount} no"
+                    },
+                    color = Color.White.copy(alpha = 0.84f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 if (state.actionMessage.isNotBlank()) {
                     Text(state.actionMessage, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
                 }
@@ -1218,6 +1243,47 @@ fun PostDetailScreen(
                     Text(it, color = Color(0xFFFDA4AF), style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CompareDetailPane(
+    imageUrl: String?,
+    contentDescription: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxHeight()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        if (!selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.18f))
+            )
+        }
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(38.dp)
+                    .background(Color.White, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("✓", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(2.dp, Color.White.copy(alpha = 0.9f))
+            )
         }
     }
 }

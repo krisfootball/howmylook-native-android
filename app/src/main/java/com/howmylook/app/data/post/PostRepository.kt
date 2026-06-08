@@ -15,6 +15,11 @@ private data class PostDetailDto(
     @SerialName("id") val id: String,
     @SerialName("caption") val caption: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("post_kind") val postKind: String = "single",
+    @SerialName("compare_left_image_url") val compareLeftImageUrl: String? = null,
+    @SerialName("compare_right_image_url") val compareRightImageUrl: String? = null,
+    @SerialName("compare_left_pick_count") val compareLeftPickCount: Int = 0,
+    @SerialName("compare_right_pick_count") val compareRightPickCount: Int = 0,
     @SerialName("yes_count") val yesCount: Int = 0,
     @SerialName("no_count") val noCount: Int = 0,
     @SerialName("user_id") val userId: String,
@@ -37,12 +42,18 @@ private data class PostImageDto(
     @SerialName("image_url") val imageUrl: String? = null,
 )
 
+@Serializable
+private data class ViewerVoteDto(
+    @SerialName("value") val value: String? = null,
+    @SerialName("vote_kind") val voteKind: String? = null,
+)
+
 class PostRepository {
     suspend fun loadPostDetail(config: SupabaseConfig, postId: String, viewerUserId: String? = null): Result<PostDetailUiState> {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val post = client.from("posts")
-                .select(columns = Columns.list("id", "caption", "image_url", "yes_count", "no_count", "user_id", "keep_forever")) {
+                .select(columns = Columns.list("id", "caption", "image_url", "post_kind", "compare_left_image_url", "compare_right_image_url", "compare_left_pick_count", "compare_right_pick_count", "yes_count", "no_count", "user_id", "keep_forever")) {
                     filter {
                         eq("id", postId)
                         eq("is_active", true)
@@ -58,12 +69,33 @@ class PostRepository {
                 }
                 .decodeSingleOrNull<PostAuthorDto>()
 
+            val viewerVote = if (viewerUserId != null && post.postKind == "compare") {
+                client.from("votes")
+                    .select(columns = Columns.list("value", "vote_kind")) {
+                        filter {
+                            eq("post_id", post.id)
+                            eq("user_id", viewerUserId)
+                            eq("vote_kind", "compare")
+                        }
+                        limit(1)
+                    }
+                    .decodeSingleOrNull<ViewerVoteDto>()
+            } else {
+                null
+            }
+
             PostDetailUiState(
                 loading = false,
                 postId = post.id,
                 authorName = author?.displayName ?: author?.username ?: "HowMyLook user",
                 occasion = post.caption ?: "No occasion added yet",
                 imageUrls = listOfNotNull(post.imageUrl),
+                postKind = post.postKind,
+                compareLeftImageUrl = post.compareLeftImageUrl,
+                compareRightImageUrl = post.compareRightImageUrl,
+                compareLeftPickCount = post.compareLeftPickCount,
+                compareRightPickCount = post.compareRightPickCount,
+                selectedCompareSide = viewerVote?.value,
                 yesCount = post.yesCount,
                 noCount = post.noCount,
                 ownerId = post.userId,
