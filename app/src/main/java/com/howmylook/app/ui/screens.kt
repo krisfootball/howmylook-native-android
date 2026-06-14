@@ -1094,16 +1094,22 @@ fun PostDetailScreen(
     ) {
         if (state.postKind == "compare" && !state.compareLeftImageUrl.isNullOrBlank() && !state.compareRightImageUrl.isNullOrBlank()) {
             Row(modifier = Modifier.fillMaxSize()) {
+                val actualPickedLeft = state.selectedCompareSide == "left" || (state.selectedCompareSide == null && state.compareLeftPickCount > state.compareRightPickCount && state.compareLeftPickCount > 0)
+                val actualPickedRight = state.selectedCompareSide == "right" || (state.selectedCompareSide == null && state.compareRightPickCount > state.compareLeftPickCount && state.compareRightPickCount > 0)
                 CompareDetailPane(
                     imageUrl = state.compareLeftImageUrl,
                     contentDescription = "Left compare photo",
                     selected = state.selectedCompareSide == "left",
+                    pickedLeft = actualPickedLeft,
+                    pickedRight = actualPickedRight,
                     modifier = Modifier.weight(1f),
                 )
                 CompareDetailPane(
                     imageUrl = state.compareRightImageUrl,
                     contentDescription = "Right compare photo",
                     selected = state.selectedCompareSide == "right",
+                    pickedLeft = actualPickedLeft,
+                    pickedRight = actualPickedRight,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -1251,6 +1257,8 @@ private fun CompareDetailPane(
     imageUrl: String?,
     contentDescription: String,
     selected: Boolean,
+    pickedLeft: Boolean,
+    pickedRight: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxHeight()) {
@@ -1267,7 +1275,8 @@ private fun CompareDetailPane(
                     .background(Color.Black.copy(alpha = 0.28f))
             )
         }
-        if (selected) {
+        val isPickedSide = pickedLeft || pickedRight
+        if (isPickedSide) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -1294,6 +1303,8 @@ private fun CompareDetailPane(
                     )
                 }
             }
+        }
+        if (isPickedSide) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1431,8 +1442,8 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
                                 if (post.postKind == "compare") {
-                                    val pickedLeft = post.selectedCompareSide == "left"
-                                    val pickedRight = post.selectedCompareSide == "right"
+                                    val pickedLeft = post.selectedCompareSide == "left" || (post.selectedCompareSide == null && post.compareLeftPickCount > post.compareRightPickCount && post.compareLeftPickCount > 0)
+                                    val pickedRight = post.selectedCompareSide == "right" || (post.selectedCompareSide == null && post.compareRightPickCount > post.compareLeftPickCount && post.compareRightPickCount > 0)
 
                                     if (pickedLeft || pickedRight) {
                                         Box(modifier = Modifier.fillMaxSize()) {
