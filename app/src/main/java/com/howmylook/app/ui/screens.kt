@@ -1431,34 +1431,54 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
                                 if (post.postKind == "compare") {
-                                    val pickedLeft = post.compareLeftPickCount > post.compareRightPickCount
-                                    val pickedRight = post.compareRightPickCount > post.compareLeftPickCount
+                                    val pickedLeft = post.selectedCompareSide == "left"
+                                    val pickedRight = post.selectedCompareSide == "right"
 
                                     if (pickedLeft || pickedRight) {
-                                        Surface(
-                                            modifier = Modifier
-                                                .align(if (pickedLeft) Alignment.TopStart else Alignment.TopEnd)
-                                                .padding(8.dp),
-                                            shape = RoundedCornerShape(999.dp),
-                                            color = Color.White.copy(alpha = 0.94f),
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            if (!pickedLeft) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.CenterStart)
+                                                        .fillMaxHeight()
+                                                        .fillMaxWidth(0.5f)
+                                                        .background(Color.Black.copy(alpha = 0.24f))
+                                                )
+                                            }
+                                            if (!pickedRight) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.CenterEnd)
+                                                        .fillMaxHeight()
+                                                        .fillMaxWidth(0.5f)
+                                                        .background(Color.Black.copy(alpha = 0.24f))
+                                                )
+                                            }
+                                            Surface(
+                                                modifier = Modifier
+                                                    .align(if (pickedLeft) Alignment.TopStart else Alignment.TopEnd)
+                                                    .padding(8.dp),
+                                                shape = RoundedCornerShape(999.dp),
+                                                color = Color.White.copy(alpha = 0.94f),
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Check,
-                                                    contentDescription = AppConfig.pickedLabel,
-                                                    tint = Color.Black,
-                                                    modifier = Modifier.size(12.dp),
-                                                )
-                                                Text(
-                                                    AppConfig.pickedLabel,
-                                                    color = Color.Black,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                )
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Check,
+                                                        contentDescription = AppConfig.pickedLabel,
+                                                        tint = Color.Black,
+                                                        modifier = Modifier.size(12.dp),
+                                                    )
+                                                    Text(
+                                                        AppConfig.pickedLabel,
+                                                        color = Color.Black,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                    )
+                                                }
                                             }
                                         }
                                     }
