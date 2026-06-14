@@ -1,0 +1,4 @@
+## Copy to local.properties or move to a safer local-only config flow later.
+## This example mirrors the current working web project values.
+supabase.url=https://kivvtomgajzzgcjcuyqd.supabase.co
+supabase.anonKey=sb_publishable_OZ0_NENf9UfdoL9dF32LaA_AVuzLkOf
