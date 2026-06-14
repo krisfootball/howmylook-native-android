@@ -543,12 +543,15 @@ class AppViewModel : ViewModel() {
         }
     }
 
-    fun openPostDetail(postId: String, fromRoute: String = "") {
+    fun openPostDetail(postId: String, fromRoute: String = "", selectedCompareSide: String? = null) {
         viewModelScope.launch {
             postDetailUiState = postDetailUiState.copy(loading = true, error = null, fromRoute = fromRoute)
             postRepository.loadPostDetail(supabaseConfig, postId, currentUserId)
                 .onSuccess { state ->
-                    postDetailUiState = state.copy(fromRoute = fromRoute)
+                    postDetailUiState = state.copy(
+                        fromRoute = fromRoute,
+                        selectedCompareSide = selectedCompareSide ?: state.selectedCompareSide,
+                    )
                 }
                 .onFailure { error ->
                     postDetailUiState = postDetailUiState.copy(

@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 private data class VoteRowDto(
     @SerialName("post_id") val postId: String,
+    @SerialName("value") val value: String? = null,
 )
 
 @Serializable
@@ -32,8 +33,8 @@ class VoteHistoryRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val isPicked = value == "picked"
-            val postIds = client.from("votes")
-                .select(columns = Columns.list("post_id")) {
+            val voteRows = client.from("votes")
+                .select(columns = Columns.list("post_id", "value")) {
                     filter {
                         eq("user_id", userId)
                         if (isPicked) {
@@ -45,7 +46,13 @@ class VoteHistoryRepository {
                     }
                 }
                 .decodeList<VoteRowDto>()
-                .map { it.postId }
+
+            val postIds = voteRows.map { it.postId }
+            val selectedSideByPostId = if (isPicked) {
+                voteRows.associate { it.postId to it.value }
+            } else {
+                emptyMap()
+            }
 
             val title = when (value) {
                 "yes" -> "Liked"
@@ -92,6 +99,7 @@ class VoteHistoryRepository {
                     noCount = noCount,
                     compareLeftPickCount = it.compareLeftPickCount,
                     compareRightPickCount = it.compareRightPickCount,
+                    selectedCompareSide = selectedSideByPostId[it.id],
                     imageCount = imageCount,
                 )
             }

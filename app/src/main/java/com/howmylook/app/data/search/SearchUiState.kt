@@ -20,6 +20,7 @@ data class ExploreLookCard(
     val noCount: Int = 0,
     val compareLeftPickCount: Int = 0,
     val compareRightPickCount: Int = 0,
+    val selectedCompareSide: String? = null,
     val imageCount: Int = 1,
     val keepForever: Boolean = false,
     val authorDisplayName: String = "",

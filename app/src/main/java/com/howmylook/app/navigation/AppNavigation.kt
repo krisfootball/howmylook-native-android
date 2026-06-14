@@ -47,6 +47,7 @@ import com.howmylook.app.ui.screens.ProfileScreen
 import com.howmylook.app.ui.screens.SearchScreen
 import com.howmylook.app.ui.screens.SplashScreen
 import com.howmylook.app.ui.screens.UploadScreen
+import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.ui.screens.UsernameScreen
 import com.howmylook.app.ui.screens.VoteHistoryScreen
 import com.howmylook.app.viewmodel.AppViewModel
@@ -428,8 +429,12 @@ fun AppNavigation(viewModel: AppViewModel) {
                     VoteHistoryScreen(
                         state = viewModel.voteHistoryUiState,
                         onBack = { navController.popBackStack() },
-                        onOpenPost = { postId ->
-                            viewModel.openPostDetail(postId, fromRoute = AppRoute.VoteHistory.name)
+                        onOpenPost = { post ->
+                            viewModel.openPostDetail(
+                                post.id,
+                                fromRoute = AppRoute.VoteHistory.name,
+                                selectedCompareSide = post.selectedCompareSide,
+                            )
                             navController.navigate(AppRoute.PostDetail.name)
                         },
                     )

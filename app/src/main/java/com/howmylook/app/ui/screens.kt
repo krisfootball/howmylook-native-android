@@ -66,6 +66,7 @@ import com.howmylook.app.data.post.PostDetailUiState
 import com.howmylook.app.data.profile.EditProfileFormState
 import com.howmylook.app.data.profile.ProfileUiState
 import com.howmylook.app.data.profile.VoteHistoryUiState
+import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
@@ -1227,15 +1228,13 @@ fun PostDetailScreen(
                         .padding(vertical = 2.dp)
                 )
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text(
-                    if (state.postKind == "compare") {
-                        "${state.compareLeftPickCount + state.compareRightPickCount} picked"
-                    } else {
-                        "${state.yesCount} yes    ${state.noCount} no"
-                    },
-                    color = Color.White.copy(alpha = 0.84f),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                if (state.postKind != "compare") {
+                    Text(
+                        "${state.yesCount} yes    ${state.noCount} no",
+                        color = Color.White.copy(alpha = 0.84f),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
                 if (state.actionMessage.isNotBlank()) {
                     Text(state.actionMessage, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
                 }
@@ -1265,19 +1264,35 @@ private fun CompareDetailPane(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.18f))
+                    .background(Color.Black.copy(alpha = 0.28f))
             )
         }
         if (selected) {
-            Box(
+            Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(38.dp)
-                    .background(Color.White, CircleShape),
-                contentAlignment = Alignment.Center,
+                    .padding(16.dp),
+                shape = RoundedCornerShape(999.dp),
+                color = Color.White.copy(alpha = 0.96f),
             ) {
-                Text("✓", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = AppConfig.pickedLabel,
+                        tint = Color.Black,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        AppConfig.pickedLabel,
+                        color = Color.Black,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -1349,7 +1364,7 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
 }
 
 @Composable
-fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost: (String) -> Unit) {
+fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost: (ExploreLookCard) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1379,7 +1394,7 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                     .weight(1f)
                                     .height(180.dp)
                                     .clip(RoundedCornerShape(2.dp))
-                                    .clickable { onOpenPost(post.id) },
+                                    .clickable { onOpenPost(post) },
                             ) {
                                 if (post.postKind == "compare" && !post.compareLeftImageUrl.isNullOrBlank() && !post.compareRightImageUrl.isNullOrBlank()) {
                                     Row(modifier = Modifier.fillMaxSize()) {
@@ -1415,22 +1430,52 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                                 }
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .fillMaxWidth()
-                                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
-                                        .padding(8.dp),
-                                ) {
-                                    Text(
-                                        if (post.postKind == "compare") {
-                                            "${post.compareLeftPickCount + post.compareRightPickCount} picked"
-                                        } else {
-                                            "${post.yesCount} yes · ${post.noCount} no"
-                                        },
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
+                                if (post.postKind == "compare") {
+                                    val pickedLeft = post.compareLeftPickCount > post.compareRightPickCount
+                                    val pickedRight = post.compareRightPickCount > post.compareLeftPickCount
+
+                                    if (pickedLeft || pickedRight) {
+                                        Surface(
+                                            modifier = Modifier
+                                                .align(if (pickedLeft) Alignment.TopStart else Alignment.TopEnd)
+                                                .padding(8.dp),
+                                            shape = RoundedCornerShape(999.dp),
+                                            color = Color.White.copy(alpha = 0.94f),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Check,
+                                                    contentDescription = AppConfig.pickedLabel,
+                                                    tint = Color.Black,
+                                                    modifier = Modifier.size(12.dp),
+                                                )
+                                                Text(
+                                                    AppConfig.pickedLabel,
+                                                    color = Color.Black,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .fillMaxWidth()
+                                            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                                            .padding(8.dp),
+                                    ) {
+                                        Text(
+                                            "${post.yesCount} yes · ${post.noCount} no",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    }
                                 }
                             }
                         }
