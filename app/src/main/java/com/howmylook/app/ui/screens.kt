@@ -49,6 +49,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -85,10 +86,22 @@ private fun ExploreLookCard.isComparePost(): Boolean {
 
 private fun ExploreLookCard.voteSummaryLabel(): String {
     return if (isComparePost()) {
-        "${compareLeftPickCount} left · ${compareRightPickCount} right"
+        comparePercentLabel(compareLeftPickCount, compareRightPickCount)
     } else {
         "$yesCount yes · $noCount no"
     }
+}
+
+private fun comparePickPercents(leftCount: Int, rightCount: Int): Pair<Int, Int> {
+    val total = leftCount + rightCount
+    if (total == 0) return 50 to 50
+    val leftPct = ((leftCount * 100.0) / total).toInt()
+    return leftPct to (100 - leftPct)
+}
+
+private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
+    val (leftPct, rightPct) = comparePickPercents(leftCount, rightCount)
+    return "$leftPct% · $rightPct%"
 }
 
 private fun compareWinningSide(
@@ -1161,7 +1174,51 @@ private fun LookGridTile(
                 .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
                 .padding(8.dp),
         ) {
-            Text(post.voteSummaryLabel(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+            if (post.isComparePost()) {
+                val (leftPct, rightPct) = comparePickPercents(post.compareLeftPickCount, post.compareRightPickCount)
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "$leftPct%",
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        "$rightPct%",
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.End,
+                    )
+                }
+            } else {
+                Text(post.voteSummaryLabel(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickedCheckBadge(
+    modifier: Modifier = Modifier,
+    iconSize: androidx.compose.ui.unit.Dp = 12.dp,
+    padding: androidx.compose.ui.unit.Dp = 5.dp,
+) {
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = Color.White.copy(alpha = 0.94f),
+    ) {
+        Box(
+            modifier = Modifier.padding(padding),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = AppConfig.pickedLabel,
+                tint = Color.Black,
+                modifier = Modifier.size(iconSize),
+            )
         }
     }
 }
@@ -1192,31 +1249,14 @@ private fun CompareWinningOverlay(
                     .background(Color.Black.copy(alpha = 0.24f)),
             )
         }
-        Surface(
+        Box(
             modifier = Modifier
                 .align(if (winningSide == "left") Alignment.TopStart else Alignment.TopEnd)
-                .padding(8.dp),
-            shape = RoundedCornerShape(999.dp),
-            color = Color.White.copy(alpha = 0.94f),
+                .fillMaxWidth(0.5f)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = AppConfig.pickedLabel,
-                    tint = Color.Black,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(
-                    AppConfig.pickedLabel,
-                    color = Color.Black,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            PickedCheckBadge(modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
@@ -1403,11 +1443,22 @@ fun PostDetailScreen(
                 )
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
                 if (state.postKind == "compare") {
-                    Text(
-                        "${state.compareLeftPickCount} picked left · ${state.compareRightPickCount} picked right",
-                        color = Color.White.copy(alpha = 0.84f),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    val (leftPct, rightPct) = comparePickPercents(state.compareLeftPickCount, state.compareRightPickCount)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "$leftPct%",
+                            color = Color.White.copy(alpha = 0.84f),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            "$rightPct%",
+                            color = Color.White.copy(alpha = 0.84f),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 } else {
                     Text(
                         "${state.yesCount} yes    ${state.noCount} no",
@@ -1450,32 +1501,13 @@ private fun CompareDetailPane(
             )
         }
         if (showWinningBadge) {
-            Surface(
+            PickedCheckBadge(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(999.dp),
-                color = Color.White.copy(alpha = 0.96f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = AppConfig.pickedLabel,
-                        tint = Color.Black,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        AppConfig.pickedLabel,
-                        color = Color.Black,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-            }
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp),
+                iconSize = 16.dp,
+                padding = 8.dp,
+            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
