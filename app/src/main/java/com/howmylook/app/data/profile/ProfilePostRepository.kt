@@ -32,6 +32,14 @@ private data class ProfilePostDto(
 )
 
 class ProfilePostRepository {
+    private fun normalizeCompareSide(value: String?): String? {
+        return when (value?.trim()?.lowercase()) {
+            "left" -> "left"
+            "right" -> "right"
+            else -> null
+        }
+    }
+
     suspend fun load(
         config: SupabaseConfig,
         profileId: String,
@@ -62,14 +70,14 @@ class ProfilePostRepository {
                     .select(columns = Columns.list("post_id", "value")) {
                         filter {
                             eq("user_id", viewerUserId)
-                            eq("vote_kind", "compare")
                             isIn("post_id", comparePostIds)
+                            isIn("value", listOf("left", "right"))
                         }
                     }
                     .decodeList<ProfilePostVoteRowDto>()
                     .mapNotNull { row ->
-                        val side = row.value
-                        if (side == "left" || side == "right") row.postId to side else null
+                        val side = normalizeCompareSide(row.value) ?: return@mapNotNull null
+                        row.postId to side
                     }
                     .toMap()
             }

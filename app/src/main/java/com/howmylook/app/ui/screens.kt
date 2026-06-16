@@ -89,7 +89,7 @@ private fun ExploreLookCard.voteSummaryLabel(): String {
     return if (isComparePost()) {
         comparePercentLabel(compareLeftPickCount, compareRightPickCount)
     } else {
-        "$yesCount yes · $noCount no"
+        "${yesCount} ${AppConfig.likedCountLabel} · ${noCount} ${AppConfig.skippedCountLabel}"
     }
 }
 
@@ -105,11 +105,29 @@ private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
     return "$leftPct% · $rightPct%"
 }
 
-private fun ExploreLookCard.viewerCompareSide(): String? {
-    return when (selectedCompareSide) {
-        "left", "right" -> selectedCompareSide
+private fun normalizeCompareSide(value: String?): String? {
+    return when (value?.trim()?.lowercase()) {
+        "left" -> "left"
+        "right" -> "right"
         else -> null
     }
+}
+
+private fun ExploreLookCard.viewerCompareSide(): String? {
+    return normalizeCompareSide(selectedCompareSide)
+}
+
+private fun ExploreLookCard.aggregateCompareWinningSide(): String? {
+    return when {
+        compareLeftPickCount > compareRightPickCount && compareLeftPickCount > 0 -> "left"
+        compareRightPickCount > compareLeftPickCount && compareRightPickCount > 0 -> "right"
+        else -> null
+    }
+}
+
+private fun ExploreLookCard.profileGridPickBadgeSide(isOwnProfile: Boolean): String? {
+    viewerCompareSide()?.let { return it }
+    return if (isOwnProfile) aggregateCompareWinningSide() else null
 }
 
 @Composable
@@ -550,7 +568,7 @@ fun HomeScreen(
                 Text(card.occasion, color = Color.White.copy(alpha = 0.92f), style = MaterialTheme.typography.titleMedium)
                 if (card.postKind != "compare") {
                     Text(
-                        "Liked ${card.yesCount} · Skipped ${card.noCount}",
+                        "${card.yesCount} ${AppConfig.likedCountLabel} · ${card.noCount} ${AppConfig.skippedCountLabel}",
                         color = Color.White.copy(alpha = 0.78f),
                     )
                 }
@@ -1045,6 +1063,7 @@ fun ProfileScreen(
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
                                 showKeepPin = state.isOwnProfile,
+                                isOwnProfile = state.isOwnProfile,
                                 onClick = { onOpenPost(post.id) },
                             )
                         }
@@ -1104,6 +1123,7 @@ private fun LookGridTile(
     modifier: Modifier = Modifier,
     showKeepPin: Boolean = false,
     showViewerPickBadge: Boolean = true,
+    isOwnProfile: Boolean = false,
     onClick: () -> Unit,
 ) {
     Box(
@@ -1153,7 +1173,7 @@ private fun LookGridTile(
 
         if (post.isComparePost() && showViewerPickBadge) {
             CompareViewerPickOverlay(
-                viewerSide = post.viewerCompareSide(),
+                viewerSide = post.profileGridPickBadgeSide(isOwnProfile),
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1505,7 +1525,7 @@ fun PostDetailScreen(
                     }
                 } else {
                     Text(
-                        "${state.yesCount} yes    ${state.noCount} no",
+                        "${state.yesCount} ${AppConfig.likedCountLabel}    ${state.noCount} ${AppConfig.skippedCountLabel}",
                         color = Color.White.copy(alpha = 0.84f),
                         style = MaterialTheme.typography.bodyMedium,
                     )

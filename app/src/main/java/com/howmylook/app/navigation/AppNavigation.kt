@@ -152,6 +152,23 @@ fun AppNavigation(viewModel: AppViewModel) {
         }
     }
 
+    LaunchedEffect(
+        viewModel.pendingNotificationPostId,
+        viewModel.sessionState.isLoading,
+        viewModel.sessionState.isSignedIn,
+        viewModel.sessionState.needsUnlockRatings,
+    ) {
+        val postId = viewModel.pendingNotificationPostId ?: return@LaunchedEffect
+        if (viewModel.sessionState.isLoading || !viewModel.sessionState.isSignedIn || viewModel.sessionState.needsUnlockRatings) {
+            return@LaunchedEffect
+        }
+        viewModel.openPostDetail(postId, fromRoute = AppRoute.Activity.name)
+        navController.navigate(AppRoute.PostDetail.name) {
+            launchSingleTop = true
+        }
+        viewModel.clearPendingNotificationPostId()
+    }
+
     Scaffold(
         containerColor = Color(0xFFFFF6FB),
         bottomBar = {

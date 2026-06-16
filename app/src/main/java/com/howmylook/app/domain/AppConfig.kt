@@ -5,5 +5,7 @@ object AppConfig {
     const val unlockVoteCount = 5
     const val likeLabel = "Like"
     const val skipLabel = "Skip"
+    const val likedCountLabel = "Liked"
+    const val skippedCountLabel = "Skipped"
     const val pickedLabel = "Picked"
 }

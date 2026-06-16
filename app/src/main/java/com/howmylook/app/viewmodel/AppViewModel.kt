@@ -2,6 +2,7 @@ package com.howmylook.app.viewmodel
 
 import android.Manifest
 import android.content.ContentResolver
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import com.howmylook.app.data.auth.UsernameFormState
 import com.howmylook.app.data.feed.FeedRepository
 import com.howmylook.app.data.notifications.AndroidPushRepository
 import com.howmylook.app.data.notifications.NotificationPermissionState
+import com.howmylook.app.data.notifications.PostNotificationRepository
 import com.howmylook.app.data.feed.HomeDestination
 import com.howmylook.app.data.feed.HomeUiState
 import com.howmylook.app.data.feed.RatingCard
@@ -69,6 +71,7 @@ class AppViewModel : ViewModel() {
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
     private val androidPushRepository = AndroidPushRepository()
+    private val postNotificationRepository = PostNotificationRepository()
     private val supabaseConfig = SupabaseConfig.fromBuildConfig()
 
     var sessionState by mutableStateOf(
@@ -151,6 +154,9 @@ class AppViewModel : ViewModel() {
         private set
 
     var notificationPermissionState by mutableStateOf(NotificationPermissionState())
+        private set
+
+    var pendingNotificationPostId by mutableStateOf<String?>(null)
         private set
 
     init {
@@ -791,9 +797,24 @@ class AppViewModel : ViewModel() {
         notificationPermissionState = notificationPermissionState.copy(requestedThisSession = true)
     }
 
-    fun registerPendingPushToken() {
+    fun handleNotificationOpen(postId: String) {
+        if (postId.isBlank()) return
+        pendingNotificationPostId = postId
+    }
+
+    fun clearPendingNotificationPostId() {
+        pendingNotificationPostId = null
+    }
+
+    fun registerPendingPushToken(context: Context? = null) {
         val userId = currentUserId ?: return
-        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+        val pendingFromStorage = context
+            ?.getSharedPreferences(PUSH_PREFS_NAME, Context.MODE_PRIVATE)
+            ?.getString(PENDING_FCM_TOKEN_KEY, null)
+            ?.takeIf { it.isNotBlank() }
+
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { currentToken ->
+            val token = pendingFromStorage ?: currentToken
             if (token.isNullOrBlank()) return@addOnSuccessListener
             viewModelScope.launch {
                 androidPushRepository.registerToken(
@@ -801,8 +822,19 @@ class AppViewModel : ViewModel() {
                     userId = userId,
                     token = token,
                     deviceName = "Android",
-                )
+                ).onSuccess {
+                    context?.getSharedPreferences(PUSH_PREFS_NAME, Context.MODE_PRIVATE)
+                        ?.edit()
+                        ?.remove(PENDING_FCM_TOKEN_KEY)
+                        ?.apply()
+                }
             }
+        }
+    }
+
+    private fun notifyFollowersAboutPost(postId: String) {
+        viewModelScope.launch {
+            postNotificationRepository.notifyFollowers(supabaseConfig, postId)
         }
     }
 
@@ -948,6 +980,7 @@ class AppViewModel : ViewModel() {
                         message = "Posted. It should be visible now.",
                         lastCreatedPostId = postId,
                     )
+                    notifyFollowersAboutPost(postId)
                     loadProfile()
                     loadSearch()
                 }
@@ -1020,5 +1053,10 @@ class AppViewModel : ViewModel() {
                     homeUiState = homeUiState.copy(isLoading = false, statusMessage = message, compareSelection = null)
                 }
         }
+    }
+
+    companion object {
+        private const val PUSH_PREFS_NAME = "howmylook_push"
+        private const val PENDING_FCM_TOKEN_KEY = "pending_fcm_token"
     }
 }
