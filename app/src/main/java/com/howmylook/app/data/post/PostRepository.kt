@@ -2,7 +2,6 @@ package com.howmylook.app.data.post
 
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
-import com.howmylook.app.domain.normalizeCompareSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.storage
@@ -95,7 +94,7 @@ class PostRepository {
                 compareRightImageUrl = post.compareRightImageUrl,
                 compareLeftPickCount = post.compareLeftPickCount,
                 compareRightPickCount = post.compareRightPickCount,
-                selectedCompareSide = normalizeCompareSide(viewerVote?.value),
+                selectedCompareSide = viewerVote?.value,
                 yesCount = post.yesCount,
                 noCount = post.noCount,
                 ownerId = post.userId,

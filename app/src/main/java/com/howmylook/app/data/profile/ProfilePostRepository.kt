@@ -3,7 +3,6 @@ package com.howmylook.app.data.profile
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.search.ExploreLookCard
-import com.howmylook.app.domain.normalizeCompareSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -68,11 +67,7 @@ class ProfilePostRepository {
                         }
                     }
                     .decodeList<ProfilePostVoteRowDto>()
-                    .mapNotNull { row ->
-                        val side = normalizeCompareSide(row.value) ?: return@mapNotNull null
-                        row.postId to side
-                    }
-                    .toMap()
+                    .associate { row -> row.postId to row.value }
             }
 
             rows.map {

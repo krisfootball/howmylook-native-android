@@ -50,7 +50,6 @@ import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.AppRoute
 import com.howmylook.app.domain.AppStep
-import com.howmylook.app.domain.normalizeCompareSide
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
@@ -551,14 +550,13 @@ class AppViewModel : ViewModel() {
     }
 
     fun openPostDetail(postId: String, fromRoute: String = "", selectedCompareSide: String? = null) {
-        val normalizedSelectedSide = normalizeCompareSide(selectedCompareSide)
         viewModelScope.launch {
             postDetailUiState = postDetailUiState.copy(loading = true, error = null, fromRoute = fromRoute)
             postRepository.loadPostDetail(supabaseConfig, postId, currentUserId)
                 .onSuccess { state ->
                     postDetailUiState = state.copy(
                         fromRoute = fromRoute,
-                        selectedCompareSide = normalizedSelectedSide ?: state.selectedCompareSide,
+                        selectedCompareSide = selectedCompareSide ?: state.selectedCompareSide,
                     )
                 }
                 .onFailure { error ->

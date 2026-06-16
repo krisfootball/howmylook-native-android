@@ -3,7 +3,6 @@ package com.howmylook.app.data.profile
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.search.ExploreLookCard
-import com.howmylook.app.domain.normalizeCompareSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
@@ -50,10 +49,7 @@ class VoteHistoryRepository {
 
             val postIds = voteRows.map { it.postId }
             val selectedSideByPostId = if (isPicked) {
-                voteRows.mapNotNull { row ->
-                    val side = normalizeCompareSide(row.value) ?: return@mapNotNull null
-                    row.postId to side
-                }.toMap()
+                voteRows.associate { it.postId to it.value }
             } else {
                 emptyMap()
             }

@@ -106,11 +106,15 @@ private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
     return "$leftPct% · $rightPct%"
 }
 
-private fun ExploreLookCard.viewerCompareSide(): String? {
-    return normalizeCompareSide(selectedCompareSide)
-}
-
-private fun ExploreLookCard.aggregateCompareWinningSide(): String? {
+private fun comparePickBadgeSide(
+    selectedCompareSide: String?,
+    compareLeftPickCount: Int,
+    compareRightPickCount: Int,
+): String? {
+    if (selectedCompareSide == "left" || selectedCompareSide == "right") {
+        return selectedCompareSide
+    }
+    normalizeCompareSide(selectedCompareSide)?.let { return it }
     return when {
         compareLeftPickCount > compareRightPickCount && compareLeftPickCount > 0 -> "left"
         compareRightPickCount > compareLeftPickCount && compareRightPickCount > 0 -> "right"
@@ -118,9 +122,25 @@ private fun ExploreLookCard.aggregateCompareWinningSide(): String? {
     }
 }
 
+private fun viewerCompareSide(selectedCompareSide: String?): String? {
+    return normalizeCompareSide(selectedCompareSide)
+        ?: when (selectedCompareSide) {
+            "left", "right" -> selectedCompareSide
+            else -> null
+        }
+}
+
+private fun ExploreLookCard.viewerCompareSide(): String? {
+    return viewerCompareSide(selectedCompareSide)
+}
+
+private fun ExploreLookCard.comparePickBadgeSide(): String? {
+    return comparePickBadgeSide(selectedCompareSide, compareLeftPickCount, compareRightPickCount)
+}
+
 private fun ExploreLookCard.profileGridPickBadgeSide(isOwnProfile: Boolean): String? {
     viewerCompareSide()?.let { return it }
-    return if (isOwnProfile) aggregateCompareWinningSide() else null
+    return if (isOwnProfile) comparePickBadgeSide() else null
 }
 
 @Composable
@@ -1169,7 +1189,7 @@ private fun LookGridTile(
                 viewerSide = if (isOwnProfile) {
                     post.profileGridPickBadgeSide(isOwnProfile = true)
                 } else {
-                    post.viewerCompareSide()
+                    post.comparePickBadgeSide()
                 },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -1280,7 +1300,12 @@ fun PostDetailScreen(
     val isCompareDetail = state.postKind == "compare" &&
         !state.compareLeftImageUrl.isNullOrBlank() &&
         !state.compareRightImageUrl.isNullOrBlank()
-    val viewerPickSide = normalizeCompareSide(state.selectedCompareSide)
+    val viewerPickSide = viewerCompareSide(state.selectedCompareSide)
+    val badgeSide = comparePickBadgeSide(
+        selectedCompareSide = state.selectedCompareSide,
+        compareLeftPickCount = state.compareLeftPickCount,
+        compareRightPickCount = state.compareRightPickCount,
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1292,8 +1317,8 @@ fun PostDetailScreen(
                     imageUrl = state.compareLeftImageUrl,
                     contentDescription = "Left compare photo",
                     highlightedByViewer = viewerPickSide == "left",
-                    showViewerPickBadge = viewerPickSide == "left",
-                    hasViewerPick = viewerPickSide != null,
+                    showViewerPickBadge = badgeSide == "left",
+                    hasViewerPick = badgeSide != null,
                     onImageClick = { expandedImageUrl = state.compareLeftImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1307,8 +1332,8 @@ fun PostDetailScreen(
                     imageUrl = state.compareRightImageUrl,
                     contentDescription = "Right compare photo",
                     highlightedByViewer = viewerPickSide == "right",
-                    showViewerPickBadge = viewerPickSide == "right",
-                    hasViewerPick = viewerPickSide != null,
+                    showViewerPickBadge = badgeSide == "right",
+                    hasViewerPick = badgeSide != null,
                     onImageClick = { expandedImageUrl = state.compareRightImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1539,8 +1564,8 @@ fun PostDetailScreen(
 
         expandedImageUrl?.let { imageUrl ->
             val showPickedBadge = when (imageUrl) {
-                state.compareLeftImageUrl -> viewerPickSide == "left"
-                state.compareRightImageUrl -> viewerPickSide == "right"
+                state.compareLeftImageUrl -> badgeSide == "left"
+                state.compareRightImageUrl -> badgeSide == "right"
                 else -> false
             }
             FullScreenImageViewer(
