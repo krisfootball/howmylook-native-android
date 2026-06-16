@@ -2,6 +2,7 @@ package com.howmylook.app.data.post
 
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
+import com.howmylook.app.domain.normalizeCompareSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.storage
@@ -45,7 +46,6 @@ private data class PostImageDto(
 @Serializable
 private data class ViewerVoteDto(
     @SerialName("value") val value: String? = null,
-    @SerialName("vote_kind") val voteKind: String? = null,
 )
 
 class PostRepository {
@@ -71,11 +71,11 @@ class PostRepository {
 
             val viewerVote = if (viewerUserId != null && post.postKind == "compare") {
                 client.from("votes")
-                    .select(columns = Columns.list("value", "vote_kind")) {
+                    .select(columns = Columns.list("value")) {
                         filter {
                             eq("post_id", post.id)
                             eq("user_id", viewerUserId)
-                            eq("vote_kind", "compare")
+                            isIn("value", listOf("left", "right"))
                         }
                         limit(1)
                     }
@@ -95,7 +95,7 @@ class PostRepository {
                 compareRightImageUrl = post.compareRightImageUrl,
                 compareLeftPickCount = post.compareLeftPickCount,
                 compareRightPickCount = post.compareRightPickCount,
-                selectedCompareSide = viewerVote?.value,
+                selectedCompareSide = normalizeCompareSide(viewerVote?.value),
                 yesCount = post.yesCount,
                 noCount = post.noCount,
                 ownerId = post.userId,

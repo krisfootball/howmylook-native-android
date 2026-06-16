@@ -72,6 +72,7 @@ import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
+import com.howmylook.app.domain.normalizeCompareSide
 
 private val PinkSurface = Color(0xFFFFF5FA)
 private val SoftText = Color(0xFF64748B)
@@ -103,14 +104,6 @@ private fun comparePickPercents(leftCount: Int, rightCount: Int): Pair<Int, Int>
 private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
     val (leftPct, rightPct) = comparePickPercents(leftCount, rightCount)
     return "$leftPct% · $rightPct%"
-}
-
-private fun normalizeCompareSide(value: String?): String? {
-    return when (value?.trim()?.lowercase()) {
-        "left" -> "left"
-        "right" -> "right"
-        else -> null
-    }
 }
 
 private fun ExploreLookCard.viewerCompareSide(): String? {
@@ -1173,7 +1166,7 @@ private fun LookGridTile(
 
         if (post.isComparePost() && showViewerPickBadge) {
             CompareViewerPickOverlay(
-                viewerSide = post.profileGridPickBadgeSide(isOwnProfile),
+                viewerSide = post.viewerCompareSide() ?: post.profileGridPickBadgeSide(isOwnProfile),
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1283,6 +1276,7 @@ fun PostDetailScreen(
     val isCompareDetail = state.postKind == "compare" &&
         !state.compareLeftImageUrl.isNullOrBlank() &&
         !state.compareRightImageUrl.isNullOrBlank()
+    val viewerPickSide = normalizeCompareSide(state.selectedCompareSide)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1293,9 +1287,9 @@ fun PostDetailScreen(
                 CompareDetailPane(
                     imageUrl = state.compareLeftImageUrl,
                     contentDescription = "Left compare photo",
-                    highlightedByViewer = state.selectedCompareSide == "left",
-                    showViewerPickBadge = state.selectedCompareSide == "left",
-                    hasViewerPick = state.selectedCompareSide != null,
+                    highlightedByViewer = viewerPickSide == "left",
+                    showViewerPickBadge = viewerPickSide == "left",
+                    hasViewerPick = viewerPickSide != null,
                     onImageClick = { expandedImageUrl = state.compareLeftImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1308,9 +1302,9 @@ fun PostDetailScreen(
                 CompareDetailPane(
                     imageUrl = state.compareRightImageUrl,
                     contentDescription = "Right compare photo",
-                    highlightedByViewer = state.selectedCompareSide == "right",
-                    showViewerPickBadge = state.selectedCompareSide == "right",
-                    hasViewerPick = state.selectedCompareSide != null,
+                    highlightedByViewer = viewerPickSide == "right",
+                    showViewerPickBadge = viewerPickSide == "right",
+                    hasViewerPick = viewerPickSide != null,
                     onImageClick = { expandedImageUrl = state.compareRightImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1540,8 +1534,14 @@ fun PostDetailScreen(
         }
 
         expandedImageUrl?.let { imageUrl ->
+            val showPickedBadge = when (imageUrl) {
+                state.compareLeftImageUrl -> viewerPickSide == "left"
+                state.compareRightImageUrl -> viewerPickSide == "right"
+                else -> false
+            }
             FullScreenImageViewer(
                 imageUrl = imageUrl,
+                showPickedBadge = showPickedBadge,
                 onDismiss = { expandedImageUrl = null },
             )
         }
@@ -1551,6 +1551,7 @@ fun PostDetailScreen(
 @Composable
 private fun FullScreenImageViewer(
     imageUrl: String,
+    showPickedBadge: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     Box(
@@ -1566,6 +1567,15 @@ private fun FullScreenImageViewer(
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
+        if (showPickedBadge) {
+            PickedCheckBadge(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp),
+                iconSize = 16.dp,
+                padding = 8.dp,
+            )
+        }
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)

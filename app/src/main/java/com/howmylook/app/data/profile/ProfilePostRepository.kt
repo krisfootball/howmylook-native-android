@@ -3,6 +3,7 @@ package com.howmylook.app.data.profile
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.search.ExploreLookCard
+import com.howmylook.app.domain.normalizeCompareSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -32,14 +33,6 @@ private data class ProfilePostDto(
 )
 
 class ProfilePostRepository {
-    private fun normalizeCompareSide(value: String?): String? {
-        return when (value?.trim()?.lowercase()) {
-            "left" -> "left"
-            "right" -> "right"
-            else -> null
-        }
-    }
-
     suspend fun load(
         config: SupabaseConfig,
         profileId: String,
