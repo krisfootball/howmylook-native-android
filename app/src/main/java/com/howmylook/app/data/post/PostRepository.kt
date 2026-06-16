@@ -75,7 +75,7 @@ class PostRepository {
                         filter {
                             eq("post_id", post.id)
                             eq("user_id", viewerUserId)
-                            isIn("value", listOf("left", "right"))
+                            eq("vote_kind", "compare")
                         }
                         limit(1)
                     }

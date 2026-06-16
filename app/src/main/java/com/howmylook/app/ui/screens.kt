@@ -1166,7 +1166,11 @@ private fun LookGridTile(
 
         if (post.isComparePost() && showViewerPickBadge) {
             CompareViewerPickOverlay(
-                viewerSide = post.viewerCompareSide() ?: post.profileGridPickBadgeSide(isOwnProfile),
+                viewerSide = if (isOwnProfile) {
+                    post.profileGridPickBadgeSide(isOwnProfile = true)
+                } else {
+                    post.viewerCompareSide()
+                },
                 modifier = Modifier.fillMaxSize(),
             )
         }

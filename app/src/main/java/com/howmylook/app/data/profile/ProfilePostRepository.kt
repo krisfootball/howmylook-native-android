@@ -63,8 +63,8 @@ class ProfilePostRepository {
                     .select(columns = Columns.list("post_id", "value")) {
                         filter {
                             eq("user_id", viewerUserId)
+                            eq("vote_kind", "compare")
                             isIn("post_id", comparePostIds)
-                            isIn("value", listOf("left", "right"))
                         }
                     }
                     .decodeList<ProfilePostVoteRowDto>()

@@ -39,9 +39,10 @@ class VoteHistoryRepository {
                     filter {
                         eq("user_id", userId)
                         if (isPicked) {
-                            isIn("value", listOf("left", "right"))
+                            eq("vote_kind", "compare")
                         } else {
                             eq("value", value)
+                            eq("vote_kind", "single")
                         }
                     }
                 }
