@@ -73,6 +73,7 @@ import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.normalizeCompareSide
+import com.howmylook.app.domain.resolveCompareVoteSide
 
 private val PinkSurface = Color(0xFFFFF5FA)
 private val SoftText = Color(0xFF64748B)
@@ -123,11 +124,7 @@ private fun comparePickBadgeSide(
 }
 
 private fun viewerCompareSide(selectedCompareSide: String?): String? {
-    return normalizeCompareSide(selectedCompareSide)
-        ?: when (selectedCompareSide) {
-            "left", "right" -> selectedCompareSide
-            else -> null
-        }
+    return resolveCompareVoteSide(selectedCompareSide, "compare")
 }
 
 private fun ExploreLookCard.viewerCompareSide(): String? {
@@ -1189,7 +1186,7 @@ private fun LookGridTile(
                 viewerSide = if (isOwnProfile) {
                     post.profileGridPickBadgeSide(isOwnProfile = true)
                 } else {
-                    post.comparePickBadgeSide()
+                    post.viewerCompareSide()
                 },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -1301,11 +1298,6 @@ fun PostDetailScreen(
         !state.compareLeftImageUrl.isNullOrBlank() &&
         !state.compareRightImageUrl.isNullOrBlank()
     val viewerPickSide = viewerCompareSide(state.selectedCompareSide)
-    val badgeSide = comparePickBadgeSide(
-        selectedCompareSide = state.selectedCompareSide,
-        compareLeftPickCount = state.compareLeftPickCount,
-        compareRightPickCount = state.compareRightPickCount,
-    )
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1317,8 +1309,8 @@ fun PostDetailScreen(
                     imageUrl = state.compareLeftImageUrl,
                     contentDescription = "Left compare photo",
                     highlightedByViewer = viewerPickSide == "left",
-                    showViewerPickBadge = badgeSide == "left",
-                    hasViewerPick = badgeSide != null,
+                    showViewerPickBadge = viewerPickSide == "left",
+                    hasViewerPick = viewerPickSide != null,
                     onImageClick = { expandedImageUrl = state.compareLeftImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1332,8 +1324,8 @@ fun PostDetailScreen(
                     imageUrl = state.compareRightImageUrl,
                     contentDescription = "Right compare photo",
                     highlightedByViewer = viewerPickSide == "right",
-                    showViewerPickBadge = badgeSide == "right",
-                    hasViewerPick = badgeSide != null,
+                    showViewerPickBadge = viewerPickSide == "right",
+                    hasViewerPick = viewerPickSide != null,
                     onImageClick = { expandedImageUrl = state.compareRightImageUrl },
                     modifier = Modifier.weight(1f),
                 )
@@ -1564,8 +1556,8 @@ fun PostDetailScreen(
 
         expandedImageUrl?.let { imageUrl ->
             val showPickedBadge = when (imageUrl) {
-                state.compareLeftImageUrl -> badgeSide == "left"
-                state.compareRightImageUrl -> badgeSide == "right"
+                state.compareLeftImageUrl -> viewerPickSide == "left"
+                state.compareRightImageUrl -> viewerPickSide == "right"
                 else -> false
             }
             FullScreenImageViewer(

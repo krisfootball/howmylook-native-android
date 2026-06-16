@@ -3,6 +3,7 @@ package com.howmylook.app.data.profile
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.search.ExploreLookCard
+import com.howmylook.app.domain.resolveCompareVoteSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
@@ -49,7 +50,28 @@ class VoteHistoryRepository {
 
             val postIds = voteRows.map { it.postId }
             val selectedSideByPostId = if (isPicked) {
-                voteRows.associate { it.postId to it.value }
+                val resolvedSides = voteRows.associate { row ->
+                    row.postId to resolveCompareVoteSide(row.value, "compare")
+                }.toMutableMap()
+                if (postIds.isNotEmpty()) {
+                    client.from("votes")
+                        .select(columns = Columns.list("post_id", "value")) {
+                            filter {
+                                eq("user_id", userId)
+                                isIn("post_id", postIds)
+                                isIn("value", listOf("left", "right", "yes", "no"))
+                            }
+                        }
+                        .decodeList<VoteRowDto>()
+                        .forEach { row ->
+                            if (resolvedSides[row.postId] == null) {
+                                resolveCompareVoteSide(row.value, "compare")?.let { side ->
+                                    resolvedSides[row.postId] = side
+                                }
+                            }
+                        }
+                }
+                resolvedSides
             } else {
                 emptyMap()
             }
