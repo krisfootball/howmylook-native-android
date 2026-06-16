@@ -10,6 +10,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+private data class ProfilePostVoteRowDto(
+    @SerialName("post_id") val postId: String,
+    @SerialName("value") val value: String? = null,
+)
+
+@Serializable
 private data class ProfilePostDto(
     @SerialName("id") val id: String,
     @SerialName("caption") val caption: String? = null,
@@ -26,7 +32,12 @@ private data class ProfilePostDto(
 )
 
 class ProfilePostRepository {
-    suspend fun load(config: SupabaseConfig, profileId: String, includePendingOwnPosts: Boolean): Result<List<ExploreLookCard>> {
+    suspend fun load(
+        config: SupabaseConfig,
+        profileId: String,
+        includePendingOwnPosts: Boolean,
+        viewerUserId: String? = null,
+    ): Result<List<ExploreLookCard>> {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val rows = client.from("posts")
@@ -43,6 +54,26 @@ class ProfilePostRepository {
                 }
                 .decodeList<ProfilePostDto>()
 
+            val comparePostIds = rows.filter { it.postKind == "compare" }.map { it.id }
+            val selectedSideByPostId = if (viewerUserId == null || comparePostIds.isEmpty()) {
+                emptyMap()
+            } else {
+                client.from("votes")
+                    .select(columns = Columns.list("post_id", "value")) {
+                        filter {
+                            eq("user_id", viewerUserId)
+                            eq("vote_kind", "compare")
+                            isIn("post_id", comparePostIds)
+                        }
+                    }
+                    .decodeList<ProfilePostVoteRowDto>()
+                    .mapNotNull { row ->
+                        val side = row.value
+                        if (side == "left" || side == "right") row.postId to side else null
+                    }
+                    .toMap()
+            }
+
             rows.map {
                 ExploreLookCard(
                     id = it.id,
@@ -55,6 +86,7 @@ class ProfilePostRepository {
                     noCount = it.noCount,
                     compareLeftPickCount = it.compareLeftPickCount,
                     compareRightPickCount = it.compareRightPickCount,
+                    selectedCompareSide = selectedSideByPostId[it.id],
                     imageCount = when {
                         it.postKind == "compare" && !it.compareLeftImageUrl.isNullOrBlank() && !it.compareRightImageUrl.isNullOrBlank() -> 2
                         !it.imageUrl.isNullOrBlank() -> 1

@@ -92,7 +92,12 @@ class ProfileRepository {
             val fallbackLikedCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
             val fallbackSkippedCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
 
-            val posts = profilePostRepository.load(config, userId, includePendingOwnPosts = true).getOrElse { emptyList() }
+            val posts = profilePostRepository.load(
+                config = config,
+                profileId = userId,
+                includePendingOwnPosts = true,
+                viewerUserId = userId,
+            ).getOrElse { emptyList() }
 
             ProfileUiState(
                 loading = false,

@@ -96,7 +96,12 @@ class PeopleRepository {
                 }
                 .decodeList<PeopleVoteCountRowDto>()
 
-            val posts = profilePostRepository.load(config, profileId, includePendingOwnPosts = false).getOrElse { emptyList() }
+            val posts = profilePostRepository.load(
+                config = config,
+                profileId = profileId,
+                includePendingOwnPosts = false,
+                viewerUserId = viewerUserId,
+            ).getOrElse { emptyList() }
             val votedPostIds = (yesVoteRows.mapNotNull { it.postId } + noVoteRows.mapNotNull { it.postId }).distinct()
             val visibleVotedPostIds = if (votedPostIds.isEmpty()) {
                 emptySet()

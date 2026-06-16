@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.layout.ContentScale
@@ -104,23 +105,11 @@ private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
     return "$leftPct% · $rightPct%"
 }
 
-private fun compareWinningSide(
-    selectedCompareSide: String?,
-    compareLeftPickCount: Int,
-    compareRightPickCount: Int,
-): String? {
-    if (selectedCompareSide == "left" || selectedCompareSide == "right") {
-        return selectedCompareSide
-    }
-    return when {
-        compareLeftPickCount > compareRightPickCount && compareLeftPickCount > 0 -> "left"
-        compareRightPickCount > compareLeftPickCount && compareRightPickCount > 0 -> "right"
+private fun ExploreLookCard.viewerCompareSide(): String? {
+    return when (selectedCompareSide) {
+        "left", "right" -> selectedCompareSide
         else -> null
     }
-}
-
-private fun ExploreLookCard.compareWinningSide(): String? {
-    return compareWinningSide(selectedCompareSide, compareLeftPickCount, compareRightPickCount)
 }
 
 @Composable
@@ -718,6 +707,7 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
                                 rowIndex = rowIndex,
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
+                                showViewerPickBadge = false,
                                 onClick = { onOpenPost(look.id) },
                             )
                         }
@@ -1113,6 +1103,7 @@ private fun LookGridTile(
     columnIndex: Int,
     modifier: Modifier = Modifier,
     showKeepPin: Boolean = false,
+    showViewerPickBadge: Boolean = true,
     onClick: () -> Unit,
 ) {
     Box(
@@ -1160,9 +1151,9 @@ private fun LookGridTile(
             )
         }
 
-        if (post.isComparePost()) {
-            CompareWinningOverlay(
-                winningSide = post.compareWinningSide(),
+        if (post.isComparePost() && showViewerPickBadge) {
+            CompareViewerPickOverlay(
+                viewerSide = post.viewerCompareSide(),
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1224,34 +1215,16 @@ private fun PickedCheckBadge(
 }
 
 @Composable
-private fun CompareWinningOverlay(
-    winningSide: String?,
+private fun CompareViewerPickOverlay(
+    viewerSide: String?,
     modifier: Modifier = Modifier,
 ) {
-    if (winningSide == null) return
+    if (viewerSide == null) return
 
     Box(modifier = modifier) {
-        if (winningSide != "left") {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.5f)
-                    .background(Color.Black.copy(alpha = 0.24f)),
-            )
-        }
-        if (winningSide != "right") {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.5f)
-                    .background(Color.Black.copy(alpha = 0.24f)),
-            )
-        }
         Box(
             modifier = Modifier
-                .align(if (winningSide == "left") Alignment.TopStart else Alignment.TopEnd)
+                .align(if (viewerSide == "left") Alignment.TopStart else Alignment.TopEnd)
                 .fillMaxWidth(0.5f)
                 .fillMaxHeight(),
             contentAlignment = Alignment.TopCenter,
@@ -1286,24 +1259,24 @@ fun PostDetailScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var editExpanded by remember { mutableStateOf(false) }
     var editOccasion by remember(state.occasion) { mutableStateOf(state.occasion) }
+    var expandedImageUrl by remember { mutableStateOf<String?>(null) }
+    val isCompareDetail = state.postKind == "compare" &&
+        !state.compareLeftImageUrl.isNullOrBlank() &&
+        !state.compareRightImageUrl.isNullOrBlank()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
     ) {
-        if (state.postKind == "compare" && !state.compareLeftImageUrl.isNullOrBlank() && !state.compareRightImageUrl.isNullOrBlank()) {
-            val winningSide = compareWinningSide(
-                selectedCompareSide = state.selectedCompareSide,
-                compareLeftPickCount = state.compareLeftPickCount,
-                compareRightPickCount = state.compareRightPickCount,
-            )
+        if (isCompareDetail) {
             Row(modifier = Modifier.fillMaxSize()) {
                 CompareDetailPane(
                     imageUrl = state.compareLeftImageUrl,
                     contentDescription = "Left compare photo",
                     highlightedByViewer = state.selectedCompareSide == "left",
-                    showWinningBadge = winningSide == "left",
+                    showViewerPickBadge = state.selectedCompareSide == "left",
                     hasViewerPick = state.selectedCompareSide != null,
+                    onImageClick = { expandedImageUrl = state.compareLeftImageUrl },
                     modifier = Modifier.weight(1f),
                 )
                 Box(
@@ -1316,8 +1289,9 @@ fun PostDetailScreen(
                     imageUrl = state.compareRightImageUrl,
                     contentDescription = "Right compare photo",
                     highlightedByViewer = state.selectedCompareSide == "right",
-                    showWinningBadge = winningSide == "right",
+                    showViewerPickBadge = state.selectedCompareSide == "right",
                     hasViewerPick = state.selectedCompareSide != null,
+                    onImageClick = { expandedImageUrl = state.compareRightImageUrl },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -1330,66 +1304,136 @@ fun PostDetailScreen(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0x24000000), Color.Transparent, Color(0xC4000000)),
+        if (!isCompareDetail) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0x24000000), Color.Transparent, Color(0xC4000000)),
+                        )
                     )
-                )
-        )
+            )
+        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 18.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
+        if (isCompareDetail && state.isOwnPost && onToggleKeep != null) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(start = 16.dp, end = 16.dp, top = 36.dp)
+                    .zIndex(2f),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (state.isOwnPost && onToggleKeep != null) {
-                    Box {
-                        Button(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.height(44.dp),
-                            shape = RoundedCornerShape(999.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
-                        ) {
-                            Text("⋯", fontWeight = FontWeight.Bold)
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                            modifier = Modifier.background(Color.White, RoundedCornerShape(18.dp))
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (state.keepForever) "Unkeep photo" else "Keep photo") },
-                                onClick = {
-                                    menuExpanded = false
-                                    onToggleKeep()
-                                },
+                Box {
+                    Button(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.height(44.dp),
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
+                    ) {
+                        Text("⋯", fontWeight = FontWeight.Bold)
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.background(Color.White, RoundedCornerShape(18.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(if (state.keepForever) "Unkeep photo" else "Keep photo") },
+                            onClick = {
+                                menuExpanded = false
+                                onToggleKeep()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Edit photo", color = SoftText) },
+                            onClick = {
+                                menuExpanded = false
+                                editOccasion = state.occasion
+                                editExpanded = true
+                            },
+                            enabled = onEditOccasion != null,
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete photo", color = ErrorText) },
+                            onClick = {
+                                menuExpanded = false
+                                onDeletePost?.invoke()
+                            },
+                            enabled = onDeletePost != null,
+                        )
+                    }
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .then(
+                    if (isCompareDetail) {
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color(0xCC000000)),
+                                )
                             )
-                            DropdownMenuItem(
-                                text = { Text("Edit photo", color = SoftText) },
-                                onClick = {
-                                    menuExpanded = false
-                                    editOccasion = state.occasion
-                                    editExpanded = true
-                                },
-                                enabled = onEditOccasion != null,
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete photo", color = ErrorText) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onDeletePost?.invoke()
-                                },
-                                enabled = onDeletePost != null,
-                            )
+                            .zIndex(2f)
+                    } else {
+                        Modifier.fillMaxSize()
+                    }
+                )
+                .padding(start = 16.dp, end = 16.dp, top = if (isCompareDetail) 0.dp else 36.dp, bottom = 18.dp),
+            verticalArrangement = if (isCompareDetail) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
+        ) {
+            if (!isCompareDetail) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state.isOwnPost && onToggleKeep != null) {
+                        Box {
+                            Button(
+                                onClick = { menuExpanded = true },
+                                modifier = Modifier.height(44.dp),
+                                shape = RoundedCornerShape(999.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
+                            ) {
+                                Text("⋯", fontWeight = FontWeight.Bold)
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier.background(Color.White, RoundedCornerShape(18.dp))
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(if (state.keepForever) "Unkeep photo" else "Keep photo") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onToggleKeep()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Edit photo", color = SoftText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        editOccasion = state.occasion
+                                        editExpanded = true
+                                    },
+                                    enabled = onEditOccasion != null,
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete photo", color = ErrorText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onDeletePost?.invoke()
+                                    },
+                                    enabled = onDeletePost != null,
+                                )
+                            }
                         }
                     }
                 }
@@ -1474,6 +1518,49 @@ fun PostDetailScreen(
                 }
             }
         }
+
+        expandedImageUrl?.let { imageUrl ->
+            FullScreenImageViewer(
+                imageUrl = imageUrl,
+                onDismiss = { expandedImageUrl = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullScreenImageViewer(
+    imageUrl: String,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(3f)
+            .background(Color.Black)
+            .clickable(onClick = onDismiss),
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Full photo",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .clickable(onClick = onDismiss),
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.18f),
+        ) {
+            Text(
+                "✕",
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }
 
@@ -1482,11 +1569,16 @@ private fun CompareDetailPane(
     imageUrl: String?,
     contentDescription: String,
     highlightedByViewer: Boolean,
-    showWinningBadge: Boolean,
+    showViewerPickBadge: Boolean,
     hasViewerPick: Boolean,
+    onImageClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxHeight()) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(onClick = onImageClick),
+    ) {
         AsyncImage(
             model = imageUrl,
             contentDescription = contentDescription,
@@ -1500,7 +1592,7 @@ private fun CompareDetailPane(
                     .background(Color.Black.copy(alpha = 0.28f)),
             )
         }
-        if (showWinningBadge) {
+        if (showViewerPickBadge) {
             PickedCheckBadge(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
