@@ -87,24 +87,11 @@ private fun ExploreLookCard.isComparePost(): Boolean {
     return postKind == "compare" && !compareLeftImageUrl.isNullOrBlank() && !compareRightImageUrl.isNullOrBlank()
 }
 
-private fun ExploreLookCard.voteSummaryLabel(): String {
-    return if (isComparePost()) {
-        comparePercentLabel(compareLeftPickCount, compareRightPickCount)
-    } else {
-        "${yesCount} ${AppConfig.likedCountLabel} · ${noCount} ${AppConfig.skippedCountLabel}"
-    }
-}
-
 private fun comparePickPercents(leftCount: Int, rightCount: Int): Pair<Int, Int> {
     val total = leftCount + rightCount
     if (total == 0) return 50 to 50
     val leftPct = ((leftCount * 100.0) / total).toInt()
     return leftPct to (100 - leftPct)
-}
-
-private fun comparePercentLabel(leftCount: Int, rightCount: Int): String {
-    val (leftPct, rightPct) = comparePickPercents(leftCount, rightCount)
-    return "$leftPct% · $rightPct%"
 }
 
 private fun comparePickBadgeSide(
@@ -1124,6 +1111,7 @@ private fun LookGridTile(
     modifier: Modifier = Modifier,
     showKeepPin: Boolean = false,
     showViewerPickBadge: Boolean = true,
+    showLikedSkippedSummary: Boolean = true,
     isOwnProfile: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -1183,32 +1171,50 @@ private fun LookGridTile(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
-                .padding(8.dp),
-        ) {
-            if (post.isComparePost()) {
-                val (leftPct, rightPct) = comparePickPercents(post.compareLeftPickCount, post.compareRightPickCount)
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "$leftPct%",
-                        modifier = Modifier.weight(1f),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    Text(
-                        "$rightPct%",
-                        modifier = Modifier.weight(1f),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.End,
-                    )
+        if (post.isComparePost() || showLikedSkippedSummary) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xAA000000))))
+                    .padding(8.dp),
+            ) {
+                if (post.isComparePost()) {
+                    val (leftPct, rightPct) = comparePickPercents(post.compareLeftPickCount, post.compareRightPickCount)
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            "$leftPct%",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            "$rightPct%",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.End,
+                        )
+                    }
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "${post.yesCount} ${AppConfig.likedCountLabel}",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = "${post.noCount} ${AppConfig.skippedCountLabel}",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.End,
+                            maxLines = 1,
+                        )
+                    }
                 }
-            } else {
-                Text(post.voteSummaryLabel(), color = Color.White, style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -1742,6 +1748,7 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                 rowIndex = rowIndex,
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
+                                showLikedSkippedSummary = state.title != AppConfig.pickedLabel,
                                 onClick = { onOpenPost(post) },
                             )
                         }
