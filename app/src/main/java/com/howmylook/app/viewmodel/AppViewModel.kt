@@ -399,7 +399,7 @@ class AppViewModel : ViewModel() {
             searchUiState = searchUiState.copy(loading = true, error = null)
             searchRepository.loadSearch(supabaseConfig, currentUserId, searchUiState.query)
                 .onSuccess { state ->
-                    searchUiState = state
+                    searchUiState = state.copy(query = searchUiState.query)
                 }
                 .onFailure { error ->
                     searchUiState = searchUiState.copy(
@@ -471,7 +471,6 @@ class AppViewModel : ViewModel() {
 
     fun updateSearchQuery(value: String) {
         searchUiState = searchUiState.copy(query = value)
-        loadSearch()
     }
 
     fun requestUploadPhotoPicker() {
