@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -50,14 +50,11 @@ import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -80,6 +77,8 @@ import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.SearchUiState
 import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
+import com.howmylook.app.domain.LegalDocument
+import com.howmylook.app.domain.LegalDocumentType
 import com.howmylook.app.domain.normalizeCompareSide
 import com.howmylook.app.domain.resolveCompareVoteSide
 
@@ -172,6 +171,7 @@ fun AuthScreen(
     onAcceptedPoliciesChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit,
+    onOpenLegalDocument: (LegalDocumentType) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -243,7 +243,10 @@ fun AuthScreen(
                                 onCheckedChange = onAcceptedPoliciesChange,
                                 enabled = !state.loading,
                             )
-                            SignupPolicyAgreementText(modifier = Modifier.weight(1f))
+                            SignupPolicyAgreementText(
+                                modifier = Modifier.weight(1f),
+                                onOpenLegalDocument = onOpenLegalDocument,
+                            )
                         }
                     }
                 }
@@ -330,29 +333,37 @@ fun AuthScreen(
 }
 
 @Composable
-private fun SignupPolicyAgreementText(modifier: Modifier = Modifier) {
+private fun SignupPolicyAgreementText(
+    onOpenLegalDocument: (LegalDocumentType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val linkStyle = SpanStyle(color = AccentPink, textDecoration = TextDecoration.Underline)
     val policyText = buildAnnotatedString {
         append("I agree to the ")
-        withLink(LinkAnnotation.Url(AppConfig.termsUrl)) {
-            withStyle(linkStyle) { append("Terms") }
-        }
+        pushStringAnnotation(tag = "legal", annotation = LegalDocumentType.Terms.name)
+        withStyle(linkStyle) { append("Terms") }
+        pop()
         append(", ")
-        withLink(LinkAnnotation.Url(AppConfig.privacyUrl)) {
-            withStyle(linkStyle) { append("Privacy Policy") }
-        }
+        pushStringAnnotation(tag = "legal", annotation = LegalDocumentType.Privacy.name)
+        withStyle(linkStyle) { append("Privacy Policy") }
+        pop()
         append(", and ")
-        withLink(LinkAnnotation.Url(AppConfig.guidelinesUrl)) {
-            withStyle(linkStyle) { append("Community Guidelines") }
-        }
+        pushStringAnnotation(tag = "legal", annotation = LegalDocumentType.Guidelines.name)
+        withStyle(linkStyle) { append("Community Guidelines") }
+        pop()
         append(".")
     }
 
-    Text(
+    ClickableText(
         text = policyText,
         modifier = modifier,
-        style = MaterialTheme.typography.bodySmall,
-        color = SoftText,
+        style = MaterialTheme.typography.bodySmall.copy(color = SoftText),
+        onClick = { offset ->
+            policyText.getStringAnnotations(tag = "legal", start = offset, end = offset)
+                .firstOrNull()
+                ?.let { runCatching { LegalDocumentType.valueOf(it.item) }.getOrNull() }
+                ?.let(onOpenLegalDocument)
+        },
     )
 }
 
@@ -962,8 +973,8 @@ fun ProfileScreen(
     onOpenPost: (String) -> Unit,
     onLogOut: () -> Unit,
     onReportProfile: (String?) -> Unit,
+    onOpenLegalDocument: (LegalDocumentType) -> Unit,
 ) {
-    val uriHandler = LocalUriHandler.current
     var menuExpanded by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     val keptCount = state.posts.count { it.keepForever }
@@ -1026,19 +1037,19 @@ fun ProfileScreen(
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                         DropdownMenuItem(text = { Text("Terms") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri(AppConfig.termsUrl)
+                                            onOpenLegalDocument(LegalDocumentType.Terms)
                                         })
                                         DropdownMenuItem(text = { Text("Privacy") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri(AppConfig.privacyUrl)
+                                            onOpenLegalDocument(LegalDocumentType.Privacy)
                                         })
                                         DropdownMenuItem(text = { Text("Guidelines") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri(AppConfig.guidelinesUrl)
+                                            onOpenLegalDocument(LegalDocumentType.Guidelines)
                                         })
                                         DropdownMenuItem(text = { Text("Contact") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri(AppConfig.contactUrl)
+                                            onOpenLegalDocument(LegalDocumentType.Contact)
                                         })
                                         DropdownMenuItem(text = { Text("Log out") }, onClick = {
                                             menuExpanded = false
@@ -2239,6 +2250,70 @@ fun ActivityScreen(state: ActivityUiState, onOpenProfile: (String) -> Unit, onOp
                     Text(item.title, fontWeight = FontWeight.SemiBold)
                     if (item.subtitle.isNotBlank()) {
                         Text(item.subtitle, color = SoftText)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LegalDocumentScreen(
+    document: LegalDocument,
+    onBack: () -> Unit,
+) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onBack) {
+                Text("← Back", color = AccentPink, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 2.dp) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(document.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Last updated: ${document.lastUpdated}", color = SoftText, style = MaterialTheme.typography.bodySmall)
+
+                document.intro?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium)
+                }
+
+                document.sections.forEach { section ->
+                    Text(section.heading, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                    section.paragraphs.forEach { paragraph ->
+                        if (document.type == LegalDocumentType.Contact && paragraph.startsWith("Email:")) {
+                            Row {
+                                Text("Email: ", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = AppConfig.supportEmail,
+                                    color = AccentPink,
+                                    textDecoration = TextDecoration.Underline,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri("mailto:${AppConfig.supportEmail}")
+                                    },
+                                )
+                            }
+                        } else {
+                            Text(paragraph, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }

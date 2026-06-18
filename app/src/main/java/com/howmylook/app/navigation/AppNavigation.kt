@@ -32,16 +32,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.howmylook.app.domain.AppRoute
+import com.howmylook.app.domain.LegalDocumentType
+import com.howmylook.app.domain.LegalDocuments
 import com.howmylook.app.ui.screens.ActivityScreen
 import com.howmylook.app.ui.screens.AuthScreen
 import com.howmylook.app.ui.screens.EditProfileScreen
 import com.howmylook.app.ui.screens.FollowListScreen
 import com.howmylook.app.ui.screens.HomeScreen
+import com.howmylook.app.ui.screens.LegalDocumentScreen
 import com.howmylook.app.ui.screens.PostDetailScreen
 import com.howmylook.app.ui.screens.ProfileScreen
 import com.howmylook.app.ui.screens.SearchScreen
@@ -94,6 +98,10 @@ fun AppNavigation(viewModel: AppViewModel) {
     )
     val showBottomBar = currentRoute in bottomBarRoutes
     val pendingCameraPhotoUri = remember { mutableStateOf<Uri?>(null) }
+
+    fun openLegalDocument(type: LegalDocumentType) {
+        navController.navigate("${AppRoute.LegalDocument.name}/${type.name}")
+    }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5),
@@ -303,7 +311,27 @@ fun AppNavigation(viewModel: AppViewModel) {
                     onAcceptedPoliciesChange = viewModel::updateAcceptedPolicies,
                     onSubmit = viewModel::submitAuth,
                     onForgotPassword = viewModel::requestPasswordReset,
+                    onOpenLegalDocument = ::openLegalDocument,
                 )
+            }
+            composable(
+                route = "${AppRoute.LegalDocument.name}/{documentType}",
+                arguments = listOf(
+                    navArgument("documentType") { type = NavType.StringType },
+                ),
+            ) { backStackEntry ->
+                val documentTypeName = backStackEntry.arguments?.getString("documentType")
+                val documentType = documentTypeName?.let { name ->
+                    runCatching { LegalDocumentType.valueOf(name) }.getOrNull()
+                }
+                if (documentType == null) {
+                    LaunchedEffect(Unit) { navController.popBackStack() }
+                } else {
+                    LegalDocumentScreen(
+                        document = LegalDocuments.forType(documentType),
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
             composable(AppRoute.Username.name) {
                 UsernameScreen(
@@ -409,6 +437,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                             val profileId = viewModel.profileUiState.profileId ?: return@ProfileScreen
                             viewModel.reportProfile(profileId, reason)
                         },
+                        onOpenLegalDocument = ::openLegalDocument,
                     )
                 }
             }
