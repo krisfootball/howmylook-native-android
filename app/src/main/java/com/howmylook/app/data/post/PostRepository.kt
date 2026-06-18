@@ -77,13 +77,12 @@ class PostRepository {
                 }
                 .decodeSingleOrNull<PostAuthorDto>()
 
-            val viewerVote = if (viewerUserId != null && post.postKind == "compare") {
+            val viewerVote = if (viewerUserId != null) {
                 client.from("votes")
                     .select(columns = Columns.list("value")) {
                         filter {
                             eq("post_id", post.id)
                             eq("user_id", viewerUserId)
-                            eq("vote_kind", "compare")
                         }
                         limit(1)
                     }
@@ -103,11 +102,12 @@ class PostRepository {
                 compareRightImageUrl = post.compareRightImageUrl,
                 compareLeftPickCount = post.compareLeftPickCount,
                 compareRightPickCount = post.compareRightPickCount,
-                selectedCompareSide = resolveCompareVoteSide(viewerVote?.value, "compare"),
+                selectedCompareSide = resolveCompareVoteSide(viewerVote?.value, if (post.postKind == "compare") "compare" else null),
                 yesCount = post.yesCount,
                 noCount = post.noCount,
                 ownerId = post.userId,
                 isOwnPost = viewerUserId != null && viewerUserId == post.userId,
+                hasViewerVoted = viewerVote != null,
                 keepForever = post.keepForever == true,
                 actionMessage = "",
                 error = null,

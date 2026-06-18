@@ -1391,6 +1391,8 @@ fun PostDetailScreen(
     onDeletePost: (() -> Unit)? = null,
     onEditOccasion: ((String) -> Unit)? = null,
     onReportPost: ((String?) -> Unit)? = null,
+    onVoteYes: (() -> Unit)? = null,
+    onVoteNo: (() -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var editExpanded by remember { mutableStateOf(false) }
@@ -1401,6 +1403,7 @@ fun PostDetailScreen(
         !state.compareLeftImageUrl.isNullOrBlank() &&
         !state.compareRightImageUrl.isNullOrBlank()
     val viewerPickSide = viewerCompareSide(state.selectedCompareSide)
+    val canRate = !state.isOwnPost && !state.hasViewerVoted && onVoteYes != null && onVoteNo != null
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1414,7 +1417,11 @@ fun PostDetailScreen(
                     highlightedByViewer = viewerPickSide == "left",
                     showViewerPickBadge = viewerPickSide == "left",
                     hasViewerPick = viewerPickSide != null,
-                    onImageClick = { expandedImageUrl = state.compareLeftImageUrl },
+                    onImageClick = if (canRate) {
+                        { onVoteNo?.invoke() }
+                    } else {
+                        { expandedImageUrl = state.compareLeftImageUrl }
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 Box(
@@ -1429,7 +1436,11 @@ fun PostDetailScreen(
                     highlightedByViewer = viewerPickSide == "right",
                     showViewerPickBadge = viewerPickSide == "right",
                     hasViewerPick = viewerPickSide != null,
-                    onImageClick = { expandedImageUrl = state.compareRightImageUrl },
+                    onImageClick = if (canRate) {
+                        { onVoteYes?.invoke() }
+                    } else {
+                        { expandedImageUrl = state.compareRightImageUrl }
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -1659,6 +1670,52 @@ fun PostDetailScreen(
                         color = Color.White.copy(alpha = 0.84f),
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                }
+                if (canRate) {
+                    if (state.postKind == "compare") {
+                        Text(
+                            "Tap a side or use the buttons below to pick your favorite.",
+                            color = Color.White.copy(alpha = 0.78f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                ComparePickButton(
+                                    selected = false,
+                                    enabled = !state.loading,
+                                    onClick = { onVoteNo?.invoke() },
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                ComparePickButton(
+                                    selected = false,
+                                    enabled = !state.loading,
+                                    onClick = { onVoteYes?.invoke() },
+                                )
+                            }
+                        }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = { onVoteNo?.invoke() },
+                                enabled = !state.loading,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White),
+                                shape = RoundedCornerShape(999.dp),
+                            ) { Text("✕ ${AppConfig.skipLabel}") }
+                            Button(
+                                onClick = { onVoteYes?.invoke() },
+                                enabled = !state.loading,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                shape = RoundedCornerShape(999.dp),
+                            ) { Text("✓ ${AppConfig.likeLabel}") }
+                        }
+                    }
                 }
                 if (state.actionMessage.isNotBlank()) {
                     Text(state.actionMessage, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)

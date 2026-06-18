@@ -449,6 +449,8 @@ fun AppNavigation(viewModel: AppViewModel) {
                         val postId = viewModel.postDetailUiState.postId ?: return@PostDetailScreen
                         viewModel.reportPost(postId, reason)
                     },
+                    onVoteYes = { viewModel.voteOnPostDetail(true) },
+                    onVoteNo = { viewModel.voteOnPostDetail(false) },
                 )
             }
             composable(AppRoute.FollowList.name) {

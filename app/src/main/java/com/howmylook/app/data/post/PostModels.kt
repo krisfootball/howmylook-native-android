@@ -16,6 +16,7 @@ data class PostDetailUiState(
     val noCount: Int = 0,
     val ownerId: String? = null,
     val isOwnPost: Boolean = false,
+    val hasViewerVoted: Boolean = false,
     val keepForever: Boolean = false,
     val fromRoute: String = "",
     val actionMessage: String = "",

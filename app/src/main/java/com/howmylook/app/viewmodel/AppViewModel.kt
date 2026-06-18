@@ -26,7 +26,7 @@ import com.howmylook.app.data.notifications.NotificationPermissionState
 import com.howmylook.app.data.notifications.PostNotificationRepository
 import com.howmylook.app.data.feed.HomeDestination
 import com.howmylook.app.data.feed.HomeUiState
-import com.howmylook.app.data.feed.RatingCard
+import com.howmylook.app.data.feed.VoteResultDto
 import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
 import com.howmylook.app.data.post.EditPostRepository
@@ -533,6 +533,17 @@ class AppViewModel : ViewModel() {
     fun voteNo() {
         val card = currentCard ?: return
         submitVote(if (card.postKind == "compare") "left" else "no")
+    }
+
+    fun voteOnPostDetail(pickYes: Boolean) {
+        val detail = postDetailUiState
+        val postId = detail.postId ?: return
+        if (detail.isOwnPost || detail.hasViewerVoted || detail.loading) return
+        val value = when {
+            detail.postKind == "compare" -> if (pickYes) "right" else "left"
+            else -> if (pickYes) "yes" else "no"
+        }
+        submitVoteOnPost(postId, value, detail.postKind)
     }
 
     fun updateUploadPostKind(value: String) {
@@ -1091,37 +1102,14 @@ class AppViewModel : ViewModel() {
             )
             feedRepository.castVote(supabaseConfig, card.id, value)
                 .onSuccess { result ->
-                    val nextUnlockVotes = result.loginRatingVotesCompleted
-                        ?: result.unlockVotesCompleted
-                        ?: (sessionState.unlockVotesCompleted + 1)
-
-                    val nextQueue = ratingQueue.filterNot { it.id == card.id }
-                    ratingQueue = nextQueue
+                    val unlockMessage = applyVoteUnlockProgress(result, value)
+                    removePostFromRatingQueue(card.id)
+                    val nextQueue = ratingQueue
                     currentCard = nextQueue.firstOrNull()
-                    val requiredRatings = minOf(AppConfig.unlockVoteCount, sessionState.availablePostCount.coerceAtLeast(0))
-                    val unlockedNow = nextUnlockVotes >= requiredRatings
-                    val remaining = (requiredRatings - nextUnlockVotes).coerceAtLeast(0)
-                    val nextMessage = if (unlockedNow) {
-                        ""
-                    } else {
-                        when (value) {
-                            "yes" -> "Liked saved. $remaining ratings left."
-                            "no" -> "Skipped saved. $remaining ratings left."
-                            "left" -> "Picked left. $remaining ratings left."
-                            "right" -> "Picked right. $remaining ratings left."
-                            else -> "Saved. $remaining ratings left."
-                        }
-                    }
-                    bootstrapMessage = nextMessage
-                    sessionState = sessionState.copy(
-                        needsUnlockRatings = !unlockedNow,
-                        unlockVotesCompleted = nextUnlockVotes,
-                        bootstrapMessage = nextMessage,
-                    )
                     homeUiState = homeUiState.copy(
                         isLoading = false,
-                        destination = if (unlockedNow) HomeDestination.UNLOCKED_HOME else HomeDestination.LOCKED_HOME,
-                        statusMessage = nextMessage,
+                        destination = if (sessionState.needsUnlockRatings) HomeDestination.LOCKED_HOME else HomeDestination.UNLOCKED_HOME,
+                        statusMessage = unlockMessage,
                         compareSelection = null,
                     )
                     loadSearch()
@@ -1133,6 +1121,92 @@ class AppViewModel : ViewModel() {
                     sessionState = sessionState.copy(bootstrapMessage = message)
                     homeUiState = homeUiState.copy(isLoading = false, statusMessage = message, compareSelection = null)
                 }
+        }
+    }
+
+    private fun submitVoteOnPost(postId: String, value: String, postKind: String) {
+        val fromRoute = postDetailUiState.fromRoute
+        viewModelScope.launch {
+            postDetailUiState = postDetailUiState.copy(
+                loading = true,
+                error = null,
+                actionMessage = if (postKind == "compare") "Saving pick..." else "Saving vote...",
+            )
+            feedRepository.castVote(supabaseConfig, postId, value)
+                .onSuccess { result ->
+                    applyVoteUnlockProgress(result, value)
+                    removePostFromRatingQueue(postId)
+                    val pickedSide = if (postKind == "compare") {
+                        if (value == "left") "left" else "right"
+                    } else {
+                        postDetailUiState.selectedCompareSide
+                    }
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        hasViewerVoted = true,
+                        selectedCompareSide = pickedSide,
+                        yesCount = result.yesCount ?: postDetailUiState.yesCount,
+                        noCount = result.noCount ?: postDetailUiState.noCount,
+                        compareLeftPickCount = result.compareLeftPickCount ?: postDetailUiState.compareLeftPickCount,
+                        compareRightPickCount = result.compareRightPickCount ?: postDetailUiState.compareRightPickCount,
+                        actionMessage = postDetailVoteMessage(value),
+                        error = null,
+                        fromRoute = fromRoute,
+                    )
+                    loadSearch()
+                    loadProfile()
+                    loadRatingQueue()
+                }
+                .onFailure { error ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        actionMessage = "",
+                        error = error.message ?: "Unable to save vote.",
+                    )
+                }
+        }
+    }
+
+    private fun removePostFromRatingQueue(postId: String) {
+        if (ratingQueue.none { it.id == postId }) return
+        ratingQueue = ratingQueue.filterNot { it.id == postId }
+    }
+
+    private fun applyVoteUnlockProgress(result: VoteResultDto, value: String): String {
+        val nextUnlockVotes = result.loginRatingVotesCompleted
+            ?: result.unlockVotesCompleted
+            ?: (sessionState.unlockVotesCompleted + 1)
+
+        val requiredRatings = minOf(AppConfig.unlockVoteCount, sessionState.availablePostCount.coerceAtLeast(0))
+        val unlockedNow = nextUnlockVotes >= requiredRatings
+        val remaining = (requiredRatings - nextUnlockVotes).coerceAtLeast(0)
+        val nextMessage = if (unlockedNow) {
+            ""
+        } else {
+            when (value) {
+                "yes" -> "Liked saved. $remaining ratings left."
+                "no" -> "Skipped saved. $remaining ratings left."
+                "left" -> "Picked left. $remaining ratings left."
+                "right" -> "Picked right. $remaining ratings left."
+                else -> "Saved. $remaining ratings left."
+            }
+        }
+        bootstrapMessage = nextMessage
+        sessionState = sessionState.copy(
+            needsUnlockRatings = !unlockedNow,
+            unlockVotesCompleted = nextUnlockVotes,
+            bootstrapMessage = nextMessage,
+        )
+        return nextMessage
+    }
+
+    private fun postDetailVoteMessage(value: String): String {
+        return when (value) {
+            "yes" -> "${AppConfig.likeLabel} saved."
+            "no" -> "${AppConfig.skipLabel} saved."
+            "left" -> "Left pick saved."
+            "right" -> "Right pick saved."
+            else -> "Vote saved."
         }
     }
 
