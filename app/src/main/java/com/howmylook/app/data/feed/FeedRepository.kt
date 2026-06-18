@@ -1,6 +1,6 @@
 package com.howmylook.app.data.feed
 
-import com.howmylook.app.data.SupabaseConfig
+import com.howmylook.app.data.post.onlyNonExpiredPosts
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -37,6 +37,7 @@ class FeedRepository {
                         eq("is_active", true)
                         eq("moderation_status", "approved")
                         neq("user_id", userId)
+                        onlyNonExpiredPosts()
                     }
                     order("created_at", Order.DESCENDING)
                     limit(50)

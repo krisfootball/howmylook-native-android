@@ -52,3 +52,13 @@ fun toFriendlyAccountDeletionError(message: String?): String {
         else -> message!!
     }
 }
+
+fun toFriendlyReportError(message: String?): String {
+    val lower = message?.lowercase().orEmpty()
+    return when {
+        lower.contains("content_reports") && (lower.contains("does not exist") || lower.contains("schema cache")) ->
+            "Reporting is not set up on the server yet. Run the reports SQL migration in Supabase."
+        lower.isBlank() -> "Unable to submit report right now."
+        else -> message!!
+    }
+}

@@ -18,5 +18,6 @@ data class ProfileUiState(
     val isOwnProfile: Boolean = true,
     val isFollowing: Boolean = false,
     val notificationsEnabled: Boolean = false,
+    val actionMessage: String = "",
     val error: String? = null,
 )

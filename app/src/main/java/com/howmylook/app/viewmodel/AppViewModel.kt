@@ -39,7 +39,7 @@ import com.howmylook.app.data.profile.NotificationSettingsRepository
 import com.howmylook.app.data.profile.PeopleRepository
 import com.howmylook.app.data.profile.ProfileRepository
 import com.howmylook.app.data.profile.ProfileUiState
-import com.howmylook.app.data.profile.VoteHistoryRepository
+import com.howmylook.app.data.reports.ContentReportRepository
 import com.howmylook.app.data.profile.VoteHistoryUiState
 import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.ExploreProfileCard
@@ -67,6 +67,7 @@ class AppViewModel : ViewModel() {
     private val voteHistoryRepository = VoteHistoryRepository()
     private val editProfileRepository = EditProfileRepository()
     private val accountDeletionRepository = AccountDeletionRepository()
+    private val contentReportRepository = ContentReportRepository()
     private val notificationSettingsRepository = NotificationSettingsRepository()
     private val postRepository = PostRepository()
     private val editPostRepository = EditPostRepository()
@@ -299,6 +300,60 @@ class AppViewModel : ViewModel() {
                     authFormState = authFormState.copy(
                         loading = false,
                         error = com.howmylook.app.data.toFriendlyAuthError(error.message),
+                    )
+                }
+        }
+    }
+
+    fun requestPasswordReset() {
+        val email = authFormState.email.trim()
+        if (email.isBlank()) {
+            authFormState = authFormState.copy(error = "Enter your email first, then tap Forgot password.")
+            return
+        }
+
+        viewModelScope.launch {
+            authFormState = authFormState.copy(loading = true, error = null, message = "")
+            authRepository.resetPasswordForEmail(supabaseConfig, email)
+                .onSuccess { message ->
+                    authFormState = authFormState.copy(loading = false, message = message, error = null)
+                }
+                .onFailure { error ->
+                    authFormState = authFormState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to send password reset email.",
+                    )
+                }
+        }
+    }
+
+    fun reportPost(postId: String, reason: String?) {
+        viewModelScope.launch {
+            postDetailUiState = postDetailUiState.copy(loading = true, error = null, actionMessage = "")
+            contentReportRepository.reportPost(supabaseConfig, postId, reason)
+                .onSuccess { message ->
+                    postDetailUiState = postDetailUiState.copy(loading = false, actionMessage = message, error = null)
+                }
+                .onFailure { error ->
+                    postDetailUiState = postDetailUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to submit report.",
+                    )
+                }
+        }
+    }
+
+    fun reportProfile(profileId: String, reason: String?) {
+        viewModelScope.launch {
+            profileUiState = profileUiState.copy(loading = true, error = null, actionMessage = "")
+            contentReportRepository.reportProfile(supabaseConfig, profileId, reason)
+                .onSuccess { message ->
+                    profileUiState = profileUiState.copy(loading = false, actionMessage = message, error = null)
+                }
+                .onFailure { error ->
+                    profileUiState = profileUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to submit report.",
                     )
                 }
         }

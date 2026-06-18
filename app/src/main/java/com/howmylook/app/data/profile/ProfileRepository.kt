@@ -1,6 +1,6 @@
 package com.howmylook.app.data.profile
 
-import com.howmylook.app.data.SupabaseConfig
+import com.howmylook.app.data.post.onlyNonExpiredPosts
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -83,6 +83,7 @@ class ProfileRepository {
                             isIn("id", votedPostIds)
                             eq("is_active", true)
                             eq("moderation_status", "approved")
+                            onlyNonExpiredPosts()
                         }
                     }
                     .decodeList<VisiblePostIdRowDto>()

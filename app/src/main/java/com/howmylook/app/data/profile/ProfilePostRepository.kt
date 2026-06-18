@@ -1,5 +1,6 @@
 package com.howmylook.app.data.profile
 
+import com.howmylook.app.data.post.onlyNonExpiredPosts
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.search.ExploreLookCard
@@ -46,6 +47,7 @@ class ProfilePostRepository {
                     filter {
                         eq("user_id", profileId)
                         eq("is_active", true)
+                        onlyNonExpiredPosts()
                         if (!includePendingOwnPosts) {
                             eq("moderation_status", "approved")
                         }

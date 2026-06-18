@@ -6,6 +6,7 @@ import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.AppStep
 import com.howmylook.app.domain.getNextRequiredStep
 import com.howmylook.app.domain.hasCompletedUsername
+import com.howmylook.app.data.post.onlyNonExpiredPosts
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
@@ -57,6 +58,16 @@ class AuthRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             client.auth.signOut()
+        }
+    }
+
+    suspend fun resetPasswordForEmail(config: SupabaseConfig, email: String): Result<String> {
+        return runCatching {
+            val cleanEmail = email.trim()
+            require(cleanEmail.isNotBlank()) { "Email is required." }
+            val client = SupabaseProvider.create(config)
+            client.auth.resetPasswordForEmail(cleanEmail)
+            "Password reset email sent. Check your inbox."
         }
     }
 
@@ -144,6 +155,7 @@ class AuthRepository {
                         neq("user_id", userId)
                         eq("is_active", true)
                         eq("moderation_status", "approved")
+                        onlyNonExpiredPosts()
                     }
                     limit(100)
                 }

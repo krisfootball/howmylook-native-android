@@ -171,6 +171,7 @@ fun AuthScreen(
     onPasswordChange: (String) -> Unit,
     onAcceptedPoliciesChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
+    onForgotPassword: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -271,6 +272,17 @@ fun AuthScreen(
                     shape = RoundedCornerShape(16.dp),
                 )
 
+                if (state.mode == AuthMode.SIGN_IN) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(
+                            onClick = onForgotPassword,
+                            enabled = !state.loading,
+                        ) {
+                            Text("Forgot password?", color = AccentPink)
+                        }
+                    }
+                }
+
                 Button(
                     onClick = onSubmit,
                     modifier = Modifier.fillMaxWidth(),
@@ -341,6 +353,43 @@ private fun SignupPolicyAgreementText(modifier: Modifier = Modifier) {
         modifier = modifier,
         style = MaterialTheme.typography.bodySmall,
         color = SoftText,
+    )
+}
+
+@Composable
+private fun ReportContentDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit,
+) {
+    var reason by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Tell us what is wrong. This is optional.", color = SoftText, style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it.take(500) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Reason") },
+                    minLines = 2,
+                    colors = appTextFieldColors(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(reason.trim().ifBlank { null }) }) {
+                Text("Submit report", color = ErrorText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
     )
 }
 
@@ -912,9 +961,11 @@ fun ProfileScreen(
     onEditProfile: () -> Unit,
     onOpenPost: (String) -> Unit,
     onLogOut: () -> Unit,
+    onReportProfile: (String?) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     var menuExpanded by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     val keptCount = state.posts.count { it.keepForever }
 
     Column(
@@ -1038,6 +1089,14 @@ fun ProfileScreen(
                             }
                         }
                     }
+                    OutlinedButton(
+                        onClick = { showReportDialog = true },
+                        enabled = !state.loading,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorText),
+                    ) {
+                        Text("Report profile")
+                    }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1097,6 +1156,20 @@ fun ProfileScreen(
         state.error?.let {
             Text(it, color = ErrorText)
         }
+        if (state.actionMessage.isNotBlank()) {
+            Text(state.actionMessage, color = SuccessText)
+        }
+    }
+
+    if (showReportDialog) {
+        ReportContentDialog(
+            title = "Report this profile?",
+            onDismiss = { showReportDialog = false },
+            onConfirm = { reason ->
+                showReportDialog = false
+                onReportProfile(reason)
+            },
+        )
     }
 }
 
@@ -1317,9 +1390,11 @@ fun PostDetailScreen(
     onToggleKeep: (() -> Unit)? = null,
     onDeletePost: (() -> Unit)? = null,
     onEditOccasion: ((String) -> Unit)? = null,
+    onReportPost: ((String?) -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var editExpanded by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     var editOccasion by remember(state.occasion) { mutableStateOf(state.occasion) }
     var expandedImageUrl by remember { mutableStateOf<String?>(null) }
     val isCompareDetail = state.postKind == "compare" &&
@@ -1377,6 +1452,18 @@ fun PostDetailScreen(
                         )
                     )
             )
+        }
+
+        if (!state.isOwnPost && onReportPost != null) {
+            TextButton(
+                onClick = { showReportDialog = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 36.dp, end = 16.dp)
+                    .zIndex(3f),
+            ) {
+                Text("Report", color = Color.White)
+            }
         }
 
         if (isCompareDetail && state.isOwnPost && onToggleKeep != null) {
@@ -1594,6 +1681,17 @@ fun PostDetailScreen(
                 onDismiss = { expandedImageUrl = null },
             )
         }
+    }
+
+    if (showReportDialog && onReportPost != null) {
+        ReportContentDialog(
+            title = "Report this post?",
+            onDismiss = { showReportDialog = false },
+            onConfirm = { reason ->
+                showReportDialog = false
+                onReportPost(reason)
+            },
+        )
     }
 }
 

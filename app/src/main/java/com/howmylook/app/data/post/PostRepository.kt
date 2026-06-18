@@ -3,6 +3,7 @@ package com.howmylook.app.data.post
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.domain.resolveCompareVoteSide
+import com.howmylook.app.data.post.onlyNonExpiredPosts
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.storage
@@ -57,6 +58,13 @@ class PostRepository {
                     filter {
                         eq("id", postId)
                         eq("is_active", true)
+                        onlyNonExpiredPosts()
+                        or {
+                            eq("moderation_status", "approved")
+                            if (viewerUserId != null) {
+                                eq("user_id", viewerUserId)
+                            }
+                        }
                     }
                     limit(1)
                 }

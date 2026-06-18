@@ -302,6 +302,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                     onPasswordChange = viewModel::updatePassword,
                     onAcceptedPoliciesChange = viewModel::updateAcceptedPolicies,
                     onSubmit = viewModel::submitAuth,
+                    onForgotPassword = viewModel::requestPasswordReset,
                 )
             }
             composable(AppRoute.Username.name) {
@@ -404,6 +405,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                                 launchSingleTop = true
                             }
                         },
+                        onReportProfile = { reason ->
+                            val profileId = viewModel.profileUiState.profileId ?: return@ProfileScreen
+                            viewModel.reportProfile(profileId, reason)
+                        },
                     )
                 }
             }
@@ -440,6 +445,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                     onToggleKeep = viewModel::toggleKeepCurrentPost,
                     onDeletePost = viewModel::deleteCurrentPost,
                     onEditOccasion = viewModel::editCurrentPostOccasion,
+                    onReportPost = { reason ->
+                        val postId = viewModel.postDetailUiState.postId ?: return@PostDetailScreen
+                        viewModel.reportPost(postId, reason)
+                    },
                 )
             }
             composable(AppRoute.FollowList.name) {
