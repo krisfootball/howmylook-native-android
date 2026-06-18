@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -41,6 +42,7 @@ import com.howmylook.app.domain.AppRoute
 import com.howmylook.app.domain.LegalDocumentType
 import com.howmylook.app.domain.LegalDocuments
 import com.howmylook.app.ui.screens.ActivityScreen
+import com.howmylook.app.ui.screens.AdminScreen
 import com.howmylook.app.ui.screens.AuthScreen
 import com.howmylook.app.ui.screens.EditProfileScreen
 import com.howmylook.app.ui.screens.FollowListScreen
@@ -70,13 +72,16 @@ fun AppNavigation(viewModel: AppViewModel) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val bottomNavItems = listOf(
-        BottomNavItem(AppRoute.Home, "Home") { Icon(Icons.Outlined.Home, contentDescription = "Home") },
-        BottomNavItem(AppRoute.Search, "Search") { Icon(Icons.Outlined.Search, contentDescription = "Search") },
-        BottomNavItem(AppRoute.Upload, "Post") { Icon(Icons.Outlined.AddBox, contentDescription = "Post") },
-        BottomNavItem(AppRoute.Activity, "Activity") { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Activity") },
-        BottomNavItem(AppRoute.Profile, "Profile") { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
-    )
+    val bottomNavItems = buildList {
+        add(BottomNavItem(AppRoute.Home, "Home") { Icon(Icons.Outlined.Home, contentDescription = "Home") })
+        add(BottomNavItem(AppRoute.Search, "Search") { Icon(Icons.Outlined.Search, contentDescription = "Search") })
+        add(BottomNavItem(AppRoute.Upload, "Post") { Icon(Icons.Outlined.AddBox, contentDescription = "Post") })
+        if (viewModel.sessionState.isAdmin) {
+            add(BottomNavItem(AppRoute.Admin, "Admin") { Icon(Icons.Outlined.Shield, contentDescription = "Admin") })
+        }
+        add(BottomNavItem(AppRoute.Activity, "Activity") { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Activity") })
+        add(BottomNavItem(AppRoute.Profile, "Profile") { Icon(Icons.Outlined.Person, contentDescription = "Profile") })
+    }
     val availableBottomNavItems = if (viewModel.sessionState.needsUnlockRatings) {
         bottomNavItems.filter { it.route == AppRoute.Home }
     } else {
@@ -244,6 +249,18 @@ fun AppNavigation(viewModel: AppViewModel) {
                                                 restoreState = true
                                             }
                                         }
+                                    } else if (item.route == AppRoute.Admin) {
+                                        viewModel.loadAdminQueue()
+                                        val popped = navController.popBackStack(AppRoute.Admin.name, inclusive = false)
+                                        if (!popped) {
+                                            navController.navigate(AppRoute.Admin.name) {
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
                                     } else if (item.route == AppRoute.Search) {
                                         val popped = navController.popBackStack(AppRoute.Search.name, inclusive = false)
                                         if (!popped) {
@@ -382,6 +399,18 @@ fun AppNavigation(viewModel: AppViewModel) {
                         onPickPhotos = viewModel::requestUploadPhotoPicker,
                         onTakePhoto = viewModel::requestUploadCameraCapture,
                         onSubmit = { viewModel.submitUpload(context.contentResolver) },
+                    )
+                }
+            }
+            composable(AppRoute.Admin.name) {
+                if (!viewModel.sessionState.isAdmin || viewModel.sessionState.needsUnlockRatings) {
+                    LaunchedEffect(Unit) { navController.navigate(AppRoute.Home.name) { launchSingleTop = true } }
+                } else {
+                    LaunchedEffect(Unit) { viewModel.loadAdminQueue() }
+                    AdminScreen(
+                        state = viewModel.adminUiState,
+                        onApprovePost = viewModel::approveAdminPost,
+                        onDeletePost = viewModel::deleteAdminPost,
                     )
                 }
             }

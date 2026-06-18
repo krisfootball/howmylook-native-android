@@ -31,7 +31,8 @@ private data class NewPostDto(
     @SerialName("compare_left_pick_count") val compareLeftPickCount: Int = 0,
     @SerialName("compare_right_pick_count") val compareRightPickCount: Int = 0,
     @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("moderation_status") val moderationStatus: String = "pending",
+    @SerialName("moderation_status") val moderationStatus: String = "approved",
+    @SerialName("admin_reviewed") val adminReviewed: Boolean = false,
     @SerialName("keep_forever") val keepForever: Boolean = false,
     @SerialName("expires_at") val expiresAt: String,
 )

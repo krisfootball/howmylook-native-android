@@ -45,12 +45,23 @@ You can test manually with the same POST; the response looks like `{ "purged": 3
 
 ## Moderation
 
-- New uploads are created with `moderation_status = pending`.
-- Only **approved** posts appear in Home, Search, and other people’s profiles.
-- Your **own** profile can still show pending posts while waiting for approval.
-- Approve posts in Supabase **Table Editor → posts** (`moderation_status = approved`), or use your existing moderation flow.
+- New uploads publish as **`approved` immediately** — everyone sees them in Home, Search, and profiles right away.
+- Each new post also lands in your **Admin** queue (`admin_reviewed = false`) until you tap **Approve** or **Delete**.
+- **Approve** only clears the post from the admin grid (it stays live for everyone).
+- **Delete** removes the post completely.
+- Push notifications fire right after upload when push is set up.
 
-Push notifications (see `FIREBASE_ANDROID_PUSH_SETUP.md`) only fire for **approved** posts.
+### Admin setup
+
+1. Run `supabase/migrations/20250621000000_admin_moderation.sql`
+2. Run `supabase/migrations/20250621000001_post_admin_reviewed.sql`
+3. Grant yourself admin:
+
+```sql
+update public.profiles set is_admin = true where username = 'yourusername';
+```
+
+4. Sign out and sign back in — the **Admin** tab appears in the bottom bar.
 
 ## In-app features added
 

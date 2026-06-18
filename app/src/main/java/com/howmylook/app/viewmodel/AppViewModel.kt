@@ -12,7 +12,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.howmylook.app.data.SupabaseConfig
-import com.howmylook.app.data.activity.ActivityRepository
+import com.howmylook.app.data.admin.AdminModerationRepository
+import com.howmylook.app.data.admin.AdminUiState
 import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.auth.AuthBootstrapRepository
 import com.howmylook.app.data.auth.AuthFormState
@@ -74,7 +75,7 @@ class AppViewModel : ViewModel() {
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
     private val androidPushRepository = AndroidPushRepository()
-    private val postNotificationRepository = PostNotificationRepository()
+    private val adminModerationRepository = AdminModerationRepository()
     private val supabaseConfig = SupabaseConfig.fromBuildConfig()
 
     var sessionState by mutableStateOf(
@@ -133,6 +134,9 @@ class AppViewModel : ViewModel() {
         private set
 
     var uploadUiState by mutableStateOf(UploadUiState())
+        private set
+
+    var adminUiState by mutableStateOf(AdminUiState())
         private set
 
     var postDetailUiState by mutableStateOf(PostDetailUiState())
@@ -205,6 +209,7 @@ class AppViewModel : ViewModel() {
                 needsUnlockRatings = bootstrap.step == AppStep.RATING,
                 unlockVotesCompleted = bootstrap.profile?.loginRatingVotesCompleted ?: 0,
                 availablePostCount = bootstrap.availablePostCount,
+                isAdmin = bootstrap.profile?.isAdmin == true,
                 bootstrapMessage = bootstrap.message,
                 debugMessage = bootstrap.debugMessage,
             )
@@ -220,6 +225,9 @@ class AppViewModel : ViewModel() {
                     loadSearch()
                     loadRatingQueue()
                     loadActivity()
+                    if (bootstrap.profile?.isAdmin == true) {
+                        loadAdminQueue()
+                    }
                 }
                 registerPendingPushToken()
             }
@@ -934,6 +942,74 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun loadAdminQueue() {
+        if (!sessionState.isAdmin) return
+        viewModelScope.launch {
+            adminUiState = adminUiState.copy(loading = true, error = null)
+            adminModerationRepository.loadPendingPosts(supabaseConfig)
+                .onSuccess { posts ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        posts = posts,
+                        error = null,
+                    )
+                }
+                .onFailure { error ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to load admin queue.",
+                    )
+                }
+        }
+    }
+
+    fun approveAdminPost(postId: String) {
+        if (!sessionState.isAdmin) return
+        viewModelScope.launch {
+            adminUiState = adminUiState.copy(loading = true, error = null, actionMessage = "")
+            adminModerationRepository.approvePost(supabaseConfig, postId)
+                .onSuccess { message ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        posts = adminUiState.posts.filterNot { it.id == postId },
+                        actionMessage = message,
+                    )
+                    loadSearch()
+                    loadRatingQueue()
+                }
+                .onFailure { error ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to approve post.",
+                    )
+                }
+        }
+    }
+
+    fun deleteAdminPost(postId: String) {
+        if (!sessionState.isAdmin) return
+        viewModelScope.launch {
+            adminUiState = adminUiState.copy(loading = true, error = null, actionMessage = "")
+            adminModerationRepository.deletePost(supabaseConfig, postId)
+                .onSuccess { message ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        posts = adminUiState.posts.filterNot { it.id == postId },
+                        actionMessage = message,
+                    )
+                    loadSearch()
+                    loadRatingQueue()
+                    loadProfile()
+                }
+                .onFailure { error ->
+                    adminUiState = adminUiState.copy(
+                        loading = false,
+                        error = error.message ?: "Unable to delete post.",
+                    )
+                }
+        }
+    }
+
     fun toggleProfileNotifications() {
         val viewerUserId = currentUserId ?: return
         val profileId = selectedPersonProfileId ?: return
@@ -1073,8 +1149,12 @@ class AppViewModel : ViewModel() {
                 .onSuccess { postId ->
                     uploadUiState = UploadUiState(lastCreatedPostId = postId)
                     notifyFollowersAboutPost(postId)
+                    if (sessionState.isAdmin) {
+                        loadAdminQueue()
+                    }
                     loadProfile()
                     loadSearch()
+                    loadRatingQueue()
                 }
                 .onFailure { error ->
                     uploadUiState = uploadUiState.copy(

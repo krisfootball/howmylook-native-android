@@ -34,19 +34,10 @@ In Supabase **Project Settings → Edge Functions → Secrets**, add:
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically to edge functions.
 
-### 4. Notify when moderation approves a post
-New posts start as `moderation_status = pending`. The edge function only sends when a post is **approved** and active.
+### 4. Notify followers after a new post
+Posts publish as **approved** immediately. After upload, the app calls `notify-post-followers` when the edge function is deployed.
 
-After approval, trigger a notification using a **Database Webhook** in Supabase:
-
-1. **Database → Webhooks → Create a new hook**
-2. Table: `posts`
-3. Events: **Update**
-4. URL: `https://<project-ref>.supabase.co/functions/v1/notify-post-followers`
-5. HTTP headers: `Authorization: Bearer <service_role_key>`, `Content-Type: application/json`
-6. Payload: include `record.id` as `postId` in the JSON body (use Supabase webhook payload template)
-
-If your project auto-approves posts on insert, the app also calls the edge function right after upload.
+Optional: add a **Database Webhook** on `posts` **Insert** if you want server-side notification only (instead of or in addition to the app call).
 
 ## Firebase / Google setup
 1. Create or reuse a Firebase project for package `com.howmylook.app`
@@ -71,7 +62,7 @@ The edge function sends a **data** message (not notification payload) so Android
 2. Sign in on the follower device
 3. Follow someone and tap **Notify me**
 4. Confirm a row appears in `android_push_devices` for the follower
-5. From the followed account, publish a post (wait until it is **approved** if you use moderation)
+5. From the followed account, publish a post
 6. Confirm the follower receives a push notification
 7. Tap the notification and confirm the post detail screen opens
 

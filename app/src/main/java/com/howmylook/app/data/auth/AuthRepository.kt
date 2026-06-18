@@ -76,7 +76,7 @@ class AuthRepository {
             val client = SupabaseProvider.create(config)
             val user = client.auth.retrieveUserForCurrentSession(updateSession = true)
             val existing = client.from("profiles")
-                .select(columns = Columns.list("id", "username", "display_name", "login_rating_votes_completed")) {
+                .select(columns = Columns.list("id", "username", "display_name", "login_rating_votes_completed", "is_admin")) {
                     filter { eq("id", user.id) }
                     limit(1)
                 }

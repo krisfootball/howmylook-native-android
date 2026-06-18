@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.howmylook.app.data.activity.ActivityUiState
+import com.howmylook.app.data.admin.AdminUiState
 import com.howmylook.app.data.auth.AuthFormState
 import com.howmylook.app.data.auth.AuthMode
 import com.howmylook.app.data.auth.SessionState
@@ -813,6 +815,149 @@ fun SearchScreen(state: SearchUiState, onQueryChange: (String) -> Unit, onOpenPo
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminScreen(
+    state: AdminUiState,
+    onApprovePost: (String) -> Unit,
+    onDeletePost: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (state.loading && state.posts.isEmpty()) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                Text("Loading posts...", modifier = Modifier.padding(16.dp), color = SoftText)
+            }
+        }
+
+        state.error?.let {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
+                Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
+            }
+        }
+
+        if (!state.loading && state.error == null && state.posts.isEmpty()) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                Text("No posts yet.", modifier = Modifier.padding(16.dp), color = SoftText)
+            }
+        }
+
+        if (state.actionMessage.isNotBlank()) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFECFDF3)) {
+                Text(state.actionMessage, modifier = Modifier.padding(16.dp), color = SuccessText)
+            }
+        }
+
+        state.posts.chunked(3).forEachIndexed { rowIndex, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEachIndexed { columnIndex, post ->
+                    AdminModerationTile(
+                        post = post,
+                        rowIndex = rowIndex,
+                        columnIndex = columnIndex,
+                        enabled = !state.loading,
+                        modifier = Modifier.weight(1f),
+                        onApprove = { onApprovePost(post.id) },
+                        onDelete = { onDeletePost(post.id) },
+                    )
+                }
+                repeat(3 - row.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminModerationTile(
+    post: ExploreLookCard,
+    rowIndex: Int,
+    columnIndex: Int,
+    enabled: Boolean,
+    onApprove: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .clip(RoundedCornerShape(2.dp)),
+        ) {
+            when {
+                post.isComparePost() -> {
+                    CompareSplitImages(
+                        leftImageUrl = post.compareLeftImageUrl,
+                        rightImageUrl = post.compareRightImageUrl,
+                        leftContentDescription = "Compare left image",
+                        rightContentDescription = "Compare right image",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                !post.imageUrl.isNullOrBlank() -> {
+                    AsyncImage(
+                        model = post.imageUrl,
+                        contentDescription = post.occasion,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                else -> {
+                    val colors = when ((rowIndex + columnIndex) % 3) {
+                        0 -> listOf(Color(0xFFF6D6DF), Color(0xFFDFC8FF))
+                        1 -> listOf(Color(0xFFF7E7C6), Color(0xFFEBB3B0))
+                        else -> listOf(Color(0xFFC9D4FF), Color(0xFFDFB2F4))
+                    }
+                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
+                }
+            }
+        }
+
+        Text(
+            text = post.authorDisplayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = SoftText,
+            maxLines = 1,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Button(
+                onClick = onApprove,
+                enabled = enabled,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(999.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+            ) {
+                Text("Approve", style = MaterialTheme.typography.labelSmall)
+            }
+            OutlinedButton(
+                onClick = onDelete,
+                enabled = enabled,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+            ) {
+                Text("Delete", style = MaterialTheme.typography.labelSmall, color = ErrorText)
             }
         }
     }

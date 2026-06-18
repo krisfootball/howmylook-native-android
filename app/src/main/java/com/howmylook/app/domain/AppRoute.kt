@@ -14,4 +14,5 @@ enum class AppRoute {
     VoteHistory,
     EditProfile,
     LegalDocument,
+    Admin,
 }

@@ -7,6 +7,7 @@ data class SessionState(
     val needsUnlockRatings: Boolean = true,
     val unlockVotesCompleted: Int = 0,
     val availablePostCount: Int = 0,
+    val isAdmin: Boolean = false,
     val bootstrapMessage: String = "",
     val debugMessage: String? = null,
 )

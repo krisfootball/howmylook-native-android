@@ -9,6 +9,7 @@ data class ProfileDto(
     @SerialName("username") val username: String? = null,
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("login_rating_votes_completed") val loginRatingVotesCompleted: Int? = null,
+    @SerialName("is_admin") val isAdmin: Boolean? = null,
 )
 
 fun ProfileDto.toRecord(): ProfileRecord {
@@ -17,5 +18,6 @@ fun ProfileDto.toRecord(): ProfileRecord {
         username = username,
         displayName = displayName,
         loginRatingVotesCompleted = loginRatingVotesCompleted ?: 0,
+        isAdmin = isAdmin == true,
     )
 }
