@@ -31,6 +31,7 @@ import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
 import com.howmylook.app.data.post.EditPostRepository
 import com.howmylook.app.data.post.PostRepository
+import com.howmylook.app.data.profile.AccountDeletionRepository
 import com.howmylook.app.data.profile.EditProfileFormState
 import com.howmylook.app.data.profile.EditProfileRepository
 import com.howmylook.app.data.profile.FollowListRepository
@@ -65,6 +66,7 @@ class AppViewModel : ViewModel() {
     private val followListRepository = FollowListRepository()
     private val voteHistoryRepository = VoteHistoryRepository()
     private val editProfileRepository = EditProfileRepository()
+    private val accountDeletionRepository = AccountDeletionRepository()
     private val notificationSettingsRepository = NotificationSettingsRepository()
     private val postRepository = PostRepository()
     private val editPostRepository = EditPostRepository()
@@ -314,23 +316,48 @@ class AppViewModel : ViewModel() {
         viewModelScope.launch {
             authRepository.signOut(supabaseConfig)
                 .onSuccess {
-                    currentUserId = null
-                    selectedPersonProfileId = null
-                    ratingQueue = emptyList()
-                    currentCard = null
-                    followListUiState = FollowListUiState()
-                    voteHistoryUiState = VoteHistoryUiState()
-                    editProfileFormState = EditProfileFormState()
-                    profileUiState = ProfileUiState()
-                    searchUiState = SearchUiState()
-                    activityUiState = ActivityUiState()
-                    uploadUiState = UploadUiState()
-                    postDetailUiState = PostDetailUiState()
-                    authFormState = authFormState.copy(password = "", message = "", error = null, loading = false)
+                    clearSignedInState()
                     bootstrapSession()
                 }
                 .onFailure { error ->
                     profileUiState = profileUiState.copy(error = error.message ?: "Unable to log out.")
+                }
+        }
+    }
+
+    private fun clearSignedInState() {
+        currentUserId = null
+        selectedPersonProfileId = null
+        ratingQueue = emptyList()
+        currentCard = null
+        followListUiState = FollowListUiState()
+        voteHistoryUiState = VoteHistoryUiState()
+        editProfileFormState = EditProfileFormState()
+        profileUiState = ProfileUiState()
+        searchUiState = SearchUiState()
+        activityUiState = ActivityUiState()
+        uploadUiState = UploadUiState()
+        postDetailUiState = PostDetailUiState()
+        authFormState = authFormState.copy(password = "", message = "", error = null, loading = false)
+    }
+
+    fun deleteAccount(onSuccess: () -> Unit = {}) {
+        if (currentUserId == null) return
+
+        viewModelScope.launch {
+            editProfileFormState = editProfileFormState.copy(deleting = true, error = null, message = "")
+            accountDeletionRepository.deleteAccount(supabaseConfig)
+                .onSuccess {
+                    runCatching { authRepository.signOut(supabaseConfig) }
+                    clearSignedInState()
+                    bootstrapSession()
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    editProfileFormState = editProfileFormState.copy(
+                        deleting = false,
+                        error = error.message ?: "Unable to delete account.",
+                    )
                 }
         }
     }
@@ -805,6 +832,10 @@ class AppViewModel : ViewModel() {
         pendingNotificationPostId = null
     }
 
+    fun clearLastCreatedPostId() {
+        uploadUiState = uploadUiState.copy(lastCreatedPostId = null)
+    }
+
     fun registerPendingPushToken(context: Context? = null) {
         val userId = currentUserId ?: return
         val pendingFromStorage = context
@@ -974,11 +1005,7 @@ class AppViewModel : ViewModel() {
                 postKind = uploadUiState.postKind,
             )
                 .onSuccess { postId ->
-                    uploadUiState = UploadUiState(
-                        loading = false,
-                        message = "Posted. It should be visible now.",
-                        lastCreatedPostId = postId,
-                    )
+                    uploadUiState = UploadUiState(lastCreatedPostId = postId)
                     notifyFollowersAboutPost(postId)
                     loadProfile()
                     loadSearch()

@@ -38,3 +38,17 @@ fun toFriendlyFollowError(message: String?): String {
         else -> message!!
     }
 }
+
+fun toFriendlyAccountDeletionError(message: String?): String {
+    val lower = message?.lowercase().orEmpty()
+    return when {
+        lower.contains("function") && (lower.contains("not found") || lower.contains("404")) ->
+            "Account deletion is not set up on the server yet. Deploy the delete-account Supabase edge function first."
+        lower.contains("verify your session") || lower.contains("signed in") ->
+            "You need to be signed in before deleting your account."
+        lower.contains("network") || lower.contains("timeout") || lower.contains("host") ->
+            "Network issue while deleting your account. Try again."
+        lower.isBlank() -> "Unable to delete account right now."
+        else -> message!!
+    }
+}

@@ -8,4 +8,8 @@ object AppConfig {
     const val likedCountLabel = "Liked"
     const val skippedCountLabel = "Skipped"
     const val pickedLabel = "Picked"
+    const val termsUrl = "https://howmylook.com/terms"
+    const val privacyUrl = "https://howmylook.com/privacy"
+    const val guidelinesUrl = "https://howmylook.com/guidelines"
+    const val contactUrl = "https://howmylook.com/contact"
 }

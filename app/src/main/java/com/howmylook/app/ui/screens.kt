@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +51,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -234,11 +242,7 @@ fun AuthScreen(
                                 onCheckedChange = onAcceptedPoliciesChange,
                                 enabled = !state.loading,
                             )
-                            Text(
-                                "I agree to the Terms, Privacy Policy, and Community Guidelines.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = SoftText,
-                            )
+                            SignupPolicyAgreementText(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -311,6 +315,33 @@ fun AuthScreen(
         }
 
     }
+}
+
+@Composable
+private fun SignupPolicyAgreementText(modifier: Modifier = Modifier) {
+    val linkStyle = SpanStyle(color = AccentPink, textDecoration = TextDecoration.Underline)
+    val policyText = buildAnnotatedString {
+        append("I agree to the ")
+        withLink(LinkAnnotation.Url(AppConfig.termsUrl)) {
+            withStyle(linkStyle) { append("Terms") }
+        }
+        append(", ")
+        withLink(LinkAnnotation.Url(AppConfig.privacyUrl)) {
+            withStyle(linkStyle) { append("Privacy Policy") }
+        }
+        append(", and ")
+        withLink(LinkAnnotation.Url(AppConfig.guidelinesUrl)) {
+            withStyle(linkStyle) { append("Community Guidelines") }
+        }
+        append(".")
+    }
+
+    Text(
+        text = policyText,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodySmall,
+        color = SoftText,
+    )
 }
 
 @Composable
@@ -944,19 +975,19 @@ fun ProfileScreen(
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                         DropdownMenuItem(text = { Text("Terms") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri("https://howmylook.com/terms")
+                                            uriHandler.openUri(AppConfig.termsUrl)
                                         })
                                         DropdownMenuItem(text = { Text("Privacy") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri("https://howmylook.com/privacy")
+                                            uriHandler.openUri(AppConfig.privacyUrl)
                                         })
                                         DropdownMenuItem(text = { Text("Guidelines") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri("https://howmylook.com/guidelines")
+                                            uriHandler.openUri(AppConfig.guidelinesUrl)
                                         })
                                         DropdownMenuItem(text = { Text("Contact") }, onClick = {
                                             menuExpanded = false
-                                            uriHandler.openUri("https://howmylook.com/contact")
+                                            uriHandler.openUri(AppConfig.contactUrl)
                                         })
                                         DropdownMenuItem(text = { Text("Log out") }, onClick = {
                                             menuExpanded = false
@@ -1773,7 +1804,10 @@ fun EditProfileScreen(
     onRemovePhoto: () -> Unit,
     onKeepCurrentPhoto: () -> Unit,
     onSave: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1898,7 +1932,7 @@ fun EditProfileScreen(
                 Button(
                     onClick = onSave,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.loading && !state.saving,
+                    enabled = !state.loading && !state.saving && !state.deleting,
                     colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
                     shape = RoundedCornerShape(999.dp),
                 ) {
@@ -1908,8 +1942,64 @@ fun EditProfileScreen(
                     Text(state.message, color = SuccessText)
                 }
                 state.error?.let { Text(it, color = ErrorText) }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Delete account",
+                    color = ErrorText,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Permanently delete your profile, photos, votes, follows, and login. This cannot be undone.",
+                    color = SoftText,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Button(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading && !state.saving && !state.deleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFF1F2), contentColor = ErrorText),
+                    shape = RoundedCornerShape(999.dp),
+                ) {
+                    Text(if (state.deleting) "Deleting account..." else "Delete account forever")
+                }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!state.deleting) {
+                    showDeleteDialog = false
+                }
+            },
+            title = { Text("Delete account forever?") },
+            text = {
+                Text(
+                    "This permanently removes your profile, outfit photos, votes, follows, notifications, and sign-in access.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteAccount()
+                    },
+                    enabled = !state.deleting,
+                ) {
+                    Text("Delete forever", color = ErrorText)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    enabled = !state.deleting,
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 

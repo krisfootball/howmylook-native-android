@@ -12,6 +12,7 @@ data class VoteHistoryUiState(
 data class EditProfileFormState(
     val loading: Boolean = false,
     val saving: Boolean = false,
+    val deleting: Boolean = false,
     val username: String = "",
     val displayName: String = "",
     val bio: String = "",

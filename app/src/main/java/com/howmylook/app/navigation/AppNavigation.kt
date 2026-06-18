@@ -169,6 +169,28 @@ fun AppNavigation(viewModel: AppViewModel) {
         viewModel.clearPendingNotificationPostId()
     }
 
+    LaunchedEffect(
+        viewModel.uploadUiState.lastCreatedPostId,
+        viewModel.sessionState.isLoading,
+        viewModel.sessionState.isSignedIn,
+        viewModel.sessionState.needsUnlockRatings,
+    ) {
+        val postId = viewModel.uploadUiState.lastCreatedPostId ?: return@LaunchedEffect
+        if (viewModel.sessionState.isLoading || !viewModel.sessionState.isSignedIn || viewModel.sessionState.needsUnlockRatings) {
+            return@LaunchedEffect
+        }
+        viewModel.openOwnProfile()
+        viewModel.openPostDetail(postId, fromRoute = AppRoute.Profile.name)
+        navController.navigate(AppRoute.Profile.name) {
+            popUpTo(AppRoute.Upload.name) { inclusive = true }
+            launchSingleTop = true
+        }
+        navController.navigate(AppRoute.PostDetail.name) {
+            launchSingleTop = true
+        }
+        viewModel.clearLastCreatedPostId()
+    }
+
     Scaffold(
         containerColor = Color(0xFFFFF6FB),
         bottomBar = {
@@ -477,6 +499,14 @@ fun AppNavigation(viewModel: AppViewModel) {
                     onRemovePhoto = viewModel::markEditAvatarForRemoval,
                     onKeepCurrentPhoto = viewModel::cancelEditAvatarRemoval,
                     onSave = { viewModel.submitEditProfile(context.contentResolver) },
+                    onDeleteAccount = {
+                        viewModel.deleteAccount {
+                            navController.navigate(AppRoute.Auth.name) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     )
                 }
             }
