@@ -19,7 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -1725,6 +1726,54 @@ private fun StatPill(label: String, value: String, onClick: (() -> Unit)?) {
 }
 
 @Composable
+private fun PostDetailImagePager(
+    imageUrls: List<String>,
+    contentDescription: String,
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    onImageClick: (String) -> Unit,
+) {
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        AsyncImage(
+            model = imageUrls[page],
+            contentDescription = "$contentDescription photo ${page + 1}",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { onImageClick(imageUrls[page]) },
+        )
+    }
+}
+
+@Composable
+private fun PostDetailPageIndicator(
+    pageCount: Int,
+    currentPage: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(pageCount) { index ->
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(if (index == currentPage) 8.dp else 6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (index == currentPage) Color.White else Color.White.copy(alpha = 0.45f),
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
 fun PostDetailScreen(
     state: PostDetailUiState,
     onOpenAuthorProfile: (() -> Unit)? = null,
@@ -1743,6 +1792,7 @@ fun PostDetailScreen(
     val isCompareDetail = state.postKind == "compare" &&
         !state.compareLeftImageUrl.isNullOrBlank() &&
         !state.compareRightImageUrl.isNullOrBlank()
+    val imagePagerState = rememberPagerState(initialPage = 0) { state.imageUrls.size.coerceAtLeast(1) }
     val viewerPickSide = viewerCompareSide(state.selectedCompareSide)
     val canRate = !state.isOwnPost && !state.hasViewerVoted && onVoteYes != null && onVoteNo != null
     Box(
@@ -1786,21 +1836,23 @@ fun PostDetailScreen(
                 )
             }
         } else if (state.imageUrls.isNotEmpty()) {
-            AsyncImage(
-                model = state.imageUrls.first(),
+            PostDetailImagePager(
+                imageUrls = state.imageUrls,
                 contentDescription = state.occasion,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                pagerState = imagePagerState,
+                onImageClick = { expandedImageUrl = it },
             )
         }
 
         if (!isCompareDetail) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(320.dp)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color(0x24000000), Color.Transparent, Color(0xC4000000)),
+                            colors = listOf(Color.Transparent, Color(0x99000000), Color(0xC4000000)),
                         )
                     )
             )
@@ -1818,7 +1870,7 @@ fun PostDetailScreen(
             }
         }
 
-        if (isCompareDetail && state.isOwnPost && onToggleKeep != null) {
+        if (state.isOwnPost && onToggleKeep != null) {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -1884,61 +1936,20 @@ fun PostDetailScreen(
                             )
                             .zIndex(2f)
                     } else {
-                        Modifier.fillMaxSize()
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .zIndex(2f)
                     }
                 )
-                .padding(start = 16.dp, end = 16.dp, top = if (isCompareDetail) 0.dp else 36.dp, bottom = 18.dp),
-            verticalArrangement = if (isCompareDetail) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
+                .padding(start = 16.dp, end = 16.dp, top = if (isCompareDetail) 0.dp else 0.dp, bottom = 18.dp),
+            verticalArrangement = if (isCompareDetail) Arrangement.spacedBy(8.dp) else Arrangement.spacedBy(8.dp),
         ) {
-            if (!isCompareDetail) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (state.isOwnPost && onToggleKeep != null) {
-                        Box {
-                            Button(
-                                onClick = { menuExpanded = true },
-                                modifier = Modifier.height(44.dp),
-                                shape = RoundedCornerShape(999.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0x8C4B4B4B), contentColor = Color.White),
-                            ) {
-                                Text("⋯", fontWeight = FontWeight.Bold)
-                            }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                                modifier = Modifier.background(Color.White, RoundedCornerShape(18.dp))
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(if (state.keepForever) "Unkeep photo" else "Keep photo") },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onToggleKeep()
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Edit photo", color = SoftText) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        editOccasion = state.occasion
-                                        editExpanded = true
-                                    },
-                                    enabled = onEditOccasion != null,
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Delete photo", color = ErrorText) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onDeletePost?.invoke()
-                                    },
-                                    enabled = onDeletePost != null,
-                                )
-                            }
-                        }
-                    }
-                }
+            if (!isCompareDetail && state.imageUrls.size > 1) {
+                PostDetailPageIndicator(
+                    pageCount = state.imageUrls.size,
+                    currentPage = imagePagerState.currentPage,
+                )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

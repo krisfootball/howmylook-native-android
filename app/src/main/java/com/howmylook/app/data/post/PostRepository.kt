@@ -6,6 +6,7 @@ import com.howmylook.app.domain.resolveCompareVoteSide
 import com.howmylook.app.data.post.onlyNonExpiredPosts
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -42,6 +43,7 @@ private data class KeptPostDto(
 @Serializable
 private data class PostImageDto(
     @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("sort_order") val sortOrder: Int = 0,
 )
 
 @Serializable
@@ -91,12 +93,23 @@ class PostRepository {
                 null
             }
 
+            val postImages = client.from("post_images")
+                .select(columns = Columns.list("image_url", "sort_order")) {
+                    filter { eq("post_id", post.id) }
+                    order("sort_order", Order.ASCENDING)
+                }
+                .decodeList<PostImageDto>()
+            val imageUrls = postImages
+                .sortedBy { it.sortOrder }
+                .mapNotNull { it.imageUrl }
+                .ifEmpty { listOfNotNull(post.imageUrl) }
+
             PostDetailUiState(
                 loading = false,
                 postId = post.id,
                 authorName = author?.displayName ?: author?.username ?: "HowMyLook user",
                 occasion = post.caption ?: "No occasion added yet",
-                imageUrls = listOfNotNull(post.imageUrl),
+                imageUrls = imageUrls,
                 postKind = post.postKind,
                 compareLeftImageUrl = post.compareLeftImageUrl,
                 compareRightImageUrl = post.compareRightImageUrl,
