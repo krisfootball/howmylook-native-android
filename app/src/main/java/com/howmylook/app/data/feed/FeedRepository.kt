@@ -1,6 +1,7 @@
 package com.howmylook.app.data.feed
 
 import com.howmylook.app.data.post.onlyNonExpiredPosts
+import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from

@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.admin.AdminModerationRepository
 import com.howmylook.app.data.admin.AdminUiState
+import com.howmylook.app.data.activity.ActivityRepository
 import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.auth.AuthBootstrapRepository
 import com.howmylook.app.data.auth.AuthFormState
@@ -27,6 +28,7 @@ import com.howmylook.app.data.notifications.NotificationPermissionState
 import com.howmylook.app.data.notifications.PostNotificationRepository
 import com.howmylook.app.data.feed.HomeDestination
 import com.howmylook.app.data.feed.HomeUiState
+import com.howmylook.app.data.feed.RatingCard
 import com.howmylook.app.data.feed.VoteResultDto
 import com.howmylook.app.data.post.FollowListUiState
 import com.howmylook.app.data.post.PostDetailUiState
@@ -41,6 +43,7 @@ import com.howmylook.app.data.profile.PeopleRepository
 import com.howmylook.app.data.profile.ProfileRepository
 import com.howmylook.app.data.profile.ProfileUiState
 import com.howmylook.app.data.reports.ContentReportRepository
+import com.howmylook.app.data.profile.VoteHistoryRepository
 import com.howmylook.app.data.profile.VoteHistoryUiState
 import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.data.search.ExploreProfileCard
