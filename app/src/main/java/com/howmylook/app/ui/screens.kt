@@ -48,9 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -827,58 +829,212 @@ fun AdminScreen(
     onApprovePost: (String) -> Unit,
     onDeletePost: (String) -> Unit,
 ) {
-    Column(
+    var selectedPost by remember { mutableStateOf<ExploreLookCard?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
+                    )
+                )
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (state.loading && state.posts.isEmpty()) {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                    Text("Loading posts...", modifier = Modifier.padding(16.dp), color = SoftText)
+                }
+            }
+
+            state.error?.let {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
+                    Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
+                }
+            }
+
+            if (!state.loading && state.error == null && state.posts.isEmpty()) {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
+                    Text("No posts yet.", modifier = Modifier.padding(16.dp), color = SoftText)
+                }
+            }
+
+            if (state.actionMessage.isNotBlank()) {
+                Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFECFDF3)) {
+                    Text(state.actionMessage, modifier = Modifier.padding(16.dp), color = SuccessText)
+                }
+            }
+
+            state.posts.chunked(3).forEachIndexed { rowIndex, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    row.forEachIndexed { columnIndex, post ->
+                        AdminModerationTile(
+                            post = post,
+                            rowIndex = rowIndex,
+                            columnIndex = columnIndex,
+                            enabled = !state.loading,
+                            modifier = Modifier.weight(1f),
+                            onOpen = { selectedPost = post },
+                            onApprove = { onApprovePost(post.id) },
+                            onDelete = { onDeletePost(post.id) },
+                        )
+                    }
+                    repeat(3 - row.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        selectedPost?.let { post ->
+            AdminFullScreenPostViewer(
+                post = post,
+                enabled = !state.loading,
+                onApprove = {
+                    selectedPost = null
+                    onApprovePost(post.id)
+                },
+                onDelete = {
+                    selectedPost = null
+                    onDeletePost(post.id)
+                },
+                onDismiss = { selectedPost = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdminModerationActionButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    backgroundColor: Color,
+    icon: ImageVector,
+    contentDescription: String,
+    size: androidx.compose.ui.unit.Dp,
+    iconSize: androidx.compose.ui.unit.Dp,
+) {
+    Surface(
+        modifier = Modifier
+            .size(size)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = CircleShape,
+        color = backgroundColor.copy(alpha = if (enabled) 1f else 0.45f),
+        shadowElevation = 2.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(iconSize),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdminFullScreenPostViewer(
+    post: ExploreLookCard,
+    enabled: Boolean,
+    onApprove: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.White, Color(0xFFFFF6FB), Color(0xFFF5EDF8)),
-                )
-            )
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .zIndex(4f)
+            .background(Color.Black)
+            .clickable(onClick = onDismiss),
     ) {
-        if (state.loading && state.posts.isEmpty()) {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
-                Text("Loading posts...", modifier = Modifier.padding(16.dp), color = SoftText)
+        when {
+            post.isComparePost() -> {
+                CompareSplitImages(
+                    leftImageUrl = post.compareLeftImageUrl,
+                    rightImageUrl = post.compareRightImageUrl,
+                    leftContentDescription = "Compare left image",
+                    rightContentDescription = "Compare right image",
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            !post.imageUrl.isNullOrBlank() -> {
+                AsyncImage(
+                    model = post.imageUrl,
+                    contentDescription = post.occasion,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 
-        state.error?.let {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFFFF1F2)) {
-                Text(it, modifier = Modifier.padding(16.dp), color = ErrorText)
-            }
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .clickable(onClick = onDismiss),
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.18f),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Close",
+                tint = Color.White,
+                modifier = Modifier.padding(10.dp).size(20.dp),
+            )
         }
 
-        if (!state.loading && state.error == null && state.posts.isEmpty()) {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp) {
-                Text("No posts yet.", modifier = Modifier.padding(16.dp), color = SoftText)
-            }
-        }
-
-        if (state.actionMessage.isNotBlank()) {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFECFDF3)) {
-                Text(state.actionMessage, modifier = Modifier.padding(16.dp), color = SuccessText)
-            }
-        }
-
-        state.posts.chunked(3).forEachIndexed { rowIndex, row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEachIndexed { columnIndex, post ->
-                    AdminModerationTile(
-                        post = post,
-                        rowIndex = rowIndex,
-                        columnIndex = columnIndex,
-                        enabled = !state.loading,
-                        modifier = Modifier.weight(1f),
-                        onApprove = { onApprovePost(post.id) },
-                        onDelete = { onDeletePost(post.id) },
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
                     )
-                }
-                repeat(3 - row.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                )
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = post.authorDisplayName,
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (post.occasion.isNotBlank()) {
+                Text(
+                    text = post.occasion,
+                    color = Color.White.copy(alpha = 0.82f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+            ) {
+                AdminModerationActionButton(
+                    onClick = onApprove,
+                    enabled = enabled,
+                    backgroundColor = Color(0xFF22C55E),
+                    icon = Icons.Rounded.Check,
+                    contentDescription = "Approve post",
+                    size = 56.dp,
+                    iconSize = 28.dp,
+                )
+                AdminModerationActionButton(
+                    onClick = onDelete,
+                    enabled = enabled,
+                    backgroundColor = Color(0xFFEF4444),
+                    icon = Icons.Rounded.Close,
+                    contentDescription = "Delete post",
+                    size = 56.dp,
+                    iconSize = 28.dp,
+                )
             }
         }
     }
@@ -890,6 +1046,7 @@ private fun AdminModerationTile(
     rowIndex: Int,
     columnIndex: Int,
     enabled: Boolean,
+    onOpen: () -> Unit,
     onApprove: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -902,7 +1059,8 @@ private fun AdminModerationTile(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
-                .clip(RoundedCornerShape(2.dp)),
+                .clip(RoundedCornerShape(2.dp))
+                .clickable(enabled = enabled, onClick = onOpen),
         ) {
             when {
                 post.isComparePost() -> {
@@ -931,6 +1089,33 @@ private fun AdminModerationTile(
                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors)))
                 }
             }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                AdminModerationActionButton(
+                    onClick = onApprove,
+                    enabled = enabled,
+                    backgroundColor = Color(0xFF22C55E),
+                    icon = Icons.Rounded.Check,
+                    contentDescription = "Approve post",
+                    size = 34.dp,
+                    iconSize = 18.dp,
+                )
+                AdminModerationActionButton(
+                    onClick = onDelete,
+                    enabled = enabled,
+                    backgroundColor = Color(0xFFEF4444),
+                    icon = Icons.Rounded.Close,
+                    contentDescription = "Delete post",
+                    size = 34.dp,
+                    iconSize = 18.dp,
+                )
+            }
         }
 
         Text(
@@ -939,28 +1124,6 @@ private fun AdminModerationTile(
             color = SoftText,
             maxLines = 1,
         )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(
-                onClick = onApprove,
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(999.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkButton, contentColor = Color.White),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-            ) {
-                Text("Approve", style = MaterialTheme.typography.labelSmall)
-            }
-            OutlinedButton(
-                onClick = onDelete,
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(999.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-            ) {
-                Text("Delete", style = MaterialTheme.typography.labelSmall, color = ErrorText)
-            }
-        }
     }
 }
 
