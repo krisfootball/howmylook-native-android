@@ -605,6 +605,37 @@ class AppViewModel : ViewModel() {
         )
     }
 
+    fun addCameraUploadPhoto(photoUri: String) {
+        val limit = if (uploadUiState.postKind == "compare") 2 else 5
+        val currentPhotos = uploadUiState.selectedPhotos
+        val updatedPhotos = if (currentPhotos.size >= limit) {
+            currentPhotos.dropLast(1) + photoUri
+        } else {
+            currentPhotos + photoUri
+        }
+        val photoNames = if (uploadUiState.postKind == "compare") {
+            updatedPhotos.mapIndexed { index, _ ->
+                if (index == 0) "Left photo" else "Right photo"
+            }
+        } else {
+            updatedPhotos.mapIndexed { index, _ -> "Photo ${index + 1}" }
+        }
+        val message = when {
+            uploadUiState.postKind == "compare" && updatedPhotos.size == 1 ->
+                "Left photo captured. Tap the camera again for the right photo."
+            uploadUiState.postKind == "compare" && updatedPhotos.size == 2 ->
+                "Both split photos captured."
+            updatedPhotos.size == 1 -> "Photo captured from camera."
+            else -> "${updatedPhotos.size} photos captured from camera."
+        }
+        uploadUiState = uploadUiState.copy(
+            selectedPhotos = updatedPhotos,
+            selectedPhotoNames = photoNames,
+            message = message,
+            error = null,
+        )
+    }
+
     fun openPersonProfile(profileId: String) {
         selectedPersonProfileId = profileId
         val userId = currentUserId ?: return

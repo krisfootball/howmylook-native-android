@@ -126,7 +126,7 @@ fun AppNavigation(viewModel: AppViewModel) {
         onResult = { success ->
             val uri = pendingCameraPhotoUri.value
             if (success && uri != null) {
-                viewModel.setSelectedUploadPhotos(listOf(uri.toString()))
+                viewModel.addCameraUploadPhoto(uri.toString())
             }
             pendingCameraPhotoUri.value = null
         },

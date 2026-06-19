@@ -1028,7 +1028,16 @@ fun UploadScreen(
                         shape = RoundedCornerShape(999.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkButton),
                     ) {
-                        Text("Use camera")
+                        Text(
+                            when {
+                                state.postKind == "compare" && state.selectedPhotos.isEmpty() -> "Take left photo"
+                                state.postKind == "compare" && state.selectedPhotos.size == 1 -> "Take right photo"
+                                state.postKind == "compare" -> "Retake right photo"
+                                state.selectedPhotos.size >= 5 -> "Retake photo"
+                                state.selectedPhotos.isEmpty() -> "Use camera"
+                                else -> "Add another photo"
+                            },
+                        )
                     }
                 }
             }
@@ -1054,6 +1063,17 @@ fun UploadScreen(
                             )
                         }
                         Text("Left and right will appear side by side in the feed.", color = SoftText, style = MaterialTheme.typography.bodySmall)
+                    } else if (state.postKind == "compare" && state.selectedPhotos.size == 1) {
+                        AsyncImage(
+                            model = state.selectedPhotos[0],
+                            contentDescription = "Left compare photo",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(18.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Text("Left photo ready. Tap the camera again for the right photo.", color = SoftText, style = MaterialTheme.typography.bodySmall)
                     } else {
                         state.selectedPhotoNames.forEachIndexed { index, name ->
                             Text("• ${name.ifBlank { "Photo ${index + 1}" }}", color = SoftText)
