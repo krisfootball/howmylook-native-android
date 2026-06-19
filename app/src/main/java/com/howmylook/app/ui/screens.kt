@@ -1439,17 +1439,18 @@ fun ProfileScreen(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("FOLLOWERS", state.followers.toString(), onOpenFollowers) }
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("FOLLOWING", state.following.toString(), onOpenFollowing) }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("LIKED", state.likedGiven.toString(), onOpenYesGiven) }
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("SKIPPED", state.skippedGiven.toString(), onOpenNoGiven) }
-                        Box(modifier = Modifier.weight(1f)) { ProfileStatCard("PICKED", state.pickedGiven.toString(), onOpenPickedGiven) }
-                    }
-                }
+                ProfileStatsPanel(
+                    followers = state.followers,
+                    following = state.following,
+                    liked = state.likedGiven,
+                    skipped = state.skippedGiven,
+                    picked = state.pickedGiven,
+                    onOpenFollowers = onOpenFollowers,
+                    onOpenFollowing = onOpenFollowing,
+                    onOpenLiked = onOpenYesGiven,
+                    onOpenSkipped = onOpenNoGiven,
+                    onOpenPicked = onOpenPickedGiven,
+                )
             }
         }
 
@@ -2536,22 +2537,91 @@ fun EditProfileScreen(
 }
 
 @Composable
-private fun ProfileStatCard(label: String, value: String, onClick: (() -> Unit)?) {
+private fun ProfileStatsPanel(
+    followers: Int,
+    following: Int,
+    liked: Int,
+    skipped: Int,
+    picked: Int,
+    onOpenFollowers: () -> Unit,
+    onOpenFollowing: () -> Unit,
+    onOpenLiked: () -> Unit,
+    onOpenSkipped: () -> Unit,
+    onOpenPicked: () -> Unit,
+) {
+    val dividerColor = Color(0xFFE8D5DF)
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         color = Color(0xFFF9EEF4),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(label, color = AccentPink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
-            Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ProfileStatCell("Followers", followers.toString(), onOpenFollowers, Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .align(Alignment.CenterVertically)
+                        .background(dividerColor),
+                )
+                ProfileStatCell("Following", following.toString(), onOpenFollowing, Modifier.weight(1f))
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(dividerColor),
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ProfileStatCell("Liked", liked.toString(), onOpenLiked, Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .align(Alignment.CenterVertically)
+                        .background(dividerColor),
+                )
+                ProfileStatCell("Skipped", skipped.toString(), onOpenSkipped, Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .align(Alignment.CenterVertically)
+                        .background(dividerColor),
+                )
+                ProfileStatCell("Picked", picked.toString(), onOpenPicked, Modifier.weight(1f))
+            }
         }
+    }
+}
+
+@Composable
+private fun ProfileStatCell(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = label,
+            color = AccentPink,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+        Text(
+            text = value,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
 }
 
