@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { deleteUserAccount } from "../_shared/delete-user-data.ts";
+import { hashToken } from "../_shared/account-deletion-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,91 +21,40 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "Missing Supabase service configuration." }, 500);
     }
 
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader) {
-      return jsonResponse({ error: "You need to be signed in to delete your account." }, 401);
+    const body = request.method === "POST"
+      ? await request.json().catch(() => ({})) as { confirmationToken?: string }
+      : {};
+    const confirmationToken = body.confirmationToken?.trim() ?? "";
+
+    if (!confirmationToken) {
+      return jsonResponse({
+        error: "Account deletion now requires email confirmation. Request a confirmation email from Edit profile in the app.",
+      }, 400);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const {
-      data: { user },
-      error: userError,
-    } = await userClient.auth.getUser();
-
-    if (userError || !user) {
-      return jsonResponse({ error: "Unable to verify your session." }, 401);
-    }
-
+    const tokenHash = await hashToken(confirmationToken);
     const admin = createClient(supabaseUrl, serviceRoleKey);
-    const userId = user.id;
 
-    const { data: posts, error: postsError } = await admin
-      .from("posts")
-      .select("id")
-      .eq("user_id", userId);
+    const { data: requestRow, error: requestError } = await admin
+      .from("account_deletion_requests")
+      .select("user_id, expires_at")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
 
-    if (postsError) {
-      return jsonResponse({ error: postsError.message }, 500);
+    if (requestError) {
+      return jsonResponse({ error: requestError.message }, 500);
     }
 
-    const postIds = (posts ?? []).map((row) => row.id).filter(Boolean);
-
-    if (postIds.length > 0) {
-      const { error: postVotesError } = await admin.from("votes").delete().in("post_id", postIds);
-      if (postVotesError) {
-        return jsonResponse({ error: postVotesError.message }, 500);
-      }
-
-      const { error: postImagesError } = await admin.from("post_images").delete().in("post_id", postIds);
-      if (postImagesError) {
-        return jsonResponse({ error: postImagesError.message }, 500);
-      }
-
-      const { error: deletePostsError } = await admin.from("posts").delete().eq("user_id", userId);
-      if (deletePostsError) {
-        return jsonResponse({ error: deletePostsError.message }, 500);
-      }
+    if (!requestRow) {
+      return jsonResponse({ error: "Invalid or expired account deletion confirmation." }, 400);
     }
 
-    const { error: ownVotesError } = await admin.from("votes").delete().eq("user_id", userId);
-    if (ownVotesError) {
-      return jsonResponse({ error: ownVotesError.message }, 500);
+    if (new Date(requestRow.expires_at).getTime() < Date.now()) {
+      await admin.from("account_deletion_requests").delete().eq("user_id", requestRow.user_id);
+      return jsonResponse({ error: "This account deletion link has expired." }, 400);
     }
 
-    const { error: followerRowsError } = await admin.from("follows").delete().eq("follower_id", userId);
-    if (followerRowsError) {
-      return jsonResponse({ error: followerRowsError.message }, 500);
-    }
-
-    const { error: followingRowsError } = await admin.from("follows").delete().eq("following_id", userId);
-    if (followingRowsError) {
-      return jsonResponse({ error: followingRowsError.message }, 500);
-    }
-
-    const { error: pushDevicesError } = await admin.from("android_push_devices").delete().eq("user_id", userId);
-    if (pushDevicesError) {
-      return jsonResponse({ error: pushDevicesError.message }, 500);
-    }
-
-    const { error: notificationsError } = await admin.from("user_notifications").delete().eq("user_id", userId);
-    if (notificationsError) {
-      return jsonResponse({ error: notificationsError.message }, 500);
-    }
-
-    await removeStoragePrefix(admin, "post-images", userId);
-    await removeStoragePrefix(admin, "profile-avatars", userId);
-
-    const { error: profileError } = await admin.from("profiles").delete().eq("id", userId);
-    if (profileError) {
-      return jsonResponse({ error: profileError.message }, 500);
-    }
-
-    const { error: deleteAuthError } = await admin.auth.admin.deleteUser(userId);
-    if (deleteAuthError) {
-      return jsonResponse({ error: deleteAuthError.message }, 500);
-    }
+    await deleteUserAccount(admin, requestRow.user_id);
 
     return jsonResponse({ deleted: true });
   } catch (error) {
@@ -111,26 +62,6 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: message }, 500);
   }
 });
-
-async function removeStoragePrefix(
-  admin: ReturnType<typeof createClient>,
-  bucket: string,
-  prefix: string,
-) {
-  const { data, error } = await admin.storage.from(bucket).list(prefix, { limit: 1000 });
-  if (error || !data?.length) {
-    return;
-  }
-
-  const paths = data
-    .map((item) => item.name)
-    .filter(Boolean)
-    .map((name) => `${prefix}/${name}`);
-
-  if (paths.length > 0) {
-    await admin.storage.from(bucket).remove(paths);
-  }
-}
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {

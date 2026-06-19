@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.upload.loadUploadPhotoPayload
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.storage
@@ -45,10 +46,14 @@ class EditProfileRepository {
                     limit(1)
                 }
                 .decodeSingleOrNull<EditableProfileDto>()
+            val accountEmail = runCatching {
+                client.auth.retrieveUserForCurrentSession(updateSession = false).email.orEmpty()
+            }.getOrDefault("")
 
             EditProfileFormState(
                 loading = false,
                 saving = false,
+                accountEmail = accountEmail,
                 username = profile?.username.orEmpty(),
                 displayName = profile?.displayName.orEmpty(),
                 bio = profile?.bio.orEmpty(),

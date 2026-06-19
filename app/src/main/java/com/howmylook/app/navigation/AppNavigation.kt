@@ -569,14 +569,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                     onRemovePhoto = viewModel::markEditAvatarForRemoval,
                     onKeepCurrentPhoto = viewModel::cancelEditAvatarRemoval,
                     onSave = { viewModel.submitEditProfile(context.contentResolver) },
-                    onDeleteAccount = {
-                        viewModel.deleteAccount {
-                            navController.navigate(AppRoute.Auth.name) {
-                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    },
+                    onRequestAccountDeletion = viewModel::requestAccountDeletion,
                     )
                 }
             }

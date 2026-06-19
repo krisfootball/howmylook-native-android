@@ -9,24 +9,27 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-private data class DeleteAccountResponse(
-    @SerialName("deleted") val deleted: Boolean = false,
+private data class RequestAccountDeletionResponse(
+    @SerialName("sent") val sent: Boolean = false,
+    @SerialName("message") val message: String? = null,
     @SerialName("error") val error: String? = null,
 )
 
 class AccountDeletionRepository {
-    suspend fun deleteAccount(config: SupabaseConfig): Result<Unit> {
+    suspend fun requestAccountDeletion(config: SupabaseConfig): Result<String> {
         return runCatching {
             val client = SupabaseProvider.create(config)
-            val response = client.functions.invoke(function = "delete-account").body<DeleteAccountResponse>()
+            val response = client.functions.invoke(function = "request-account-deletion")
+                .body<RequestAccountDeletionResponse>()
             if (response.error != null) {
                 error(response.error)
             }
-            if (!response.deleted) {
-                error("Account deletion did not complete.")
+            if (!response.sent) {
+                error("Unable to send account deletion email.")
             }
+            response.message ?: "Confirmation email sent. Open the link in that email to permanently delete your account."
         }.fold(
-            onSuccess = { Result.success(Unit) },
+            onSuccess = { Result.success(it) },
             onFailure = { Result.failure(IllegalStateException(toFriendlyAccountDeletionError(it.message), it)) },
         )
     }

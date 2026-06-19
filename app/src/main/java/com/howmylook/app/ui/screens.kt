@@ -2299,9 +2299,10 @@ fun EditProfileScreen(
     onRemovePhoto: () -> Unit,
     onKeepCurrentPhoto: () -> Unit,
     onSave: () -> Unit,
-    onDeleteAccount: () -> Unit,
+    onRequestAccountDeletion: () -> Unit,
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteWarningDialog by remember { mutableStateOf(false) }
+    var showDeleteEmailDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -2445,28 +2446,28 @@ fun EditProfileScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Permanently delete your profile, photos, votes, follows, and login. This cannot be undone.",
+                    "Permanently delete your profile, photos, votes, follows, and login. You must confirm from your email before anything is deleted.",
                     color = SoftText,
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Button(
-                    onClick = { showDeleteDialog = true },
+                    onClick = { showDeleteWarningDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.loading && !state.saving && !state.deleting,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFF1F2), contentColor = ErrorText),
                     shape = RoundedCornerShape(999.dp),
                 ) {
-                    Text(if (state.deleting) "Deleting account..." else "Delete account forever")
+                    Text(if (state.deleting) "Sending email..." else "Delete account forever")
                 }
             }
         }
     }
 
-    if (showDeleteDialog) {
+    if (showDeleteWarningDialog) {
         AlertDialog(
             onDismissRequest = {
                 if (!state.deleting) {
-                    showDeleteDialog = false
+                    showDeleteWarningDialog = false
                 }
             },
             title = { Text("Delete account forever?") },
@@ -2478,17 +2479,53 @@ fun EditProfileScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showDeleteDialog = false
-                        onDeleteAccount()
+                        showDeleteWarningDialog = false
+                        showDeleteEmailDialog = true
                     },
                     enabled = !state.deleting,
                 ) {
-                    Text("Delete forever", color = ErrorText)
+                    Text("Continue", color = ErrorText)
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteDialog = false },
+                    onClick = { showDeleteWarningDialog = false },
+                    enabled = !state.deleting,
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (showDeleteEmailDialog) {
+        val emailLabel = state.accountEmail.ifBlank { "the email on your account" }
+        AlertDialog(
+            onDismissRequest = {
+                if (!state.deleting) {
+                    showDeleteEmailDialog = false
+                }
+            },
+            title = { Text("Confirm by email") },
+            text = {
+                Text(
+                    "We will send a confirmation link to $emailLabel. Your account stays active until you open that link. The link expires in 24 hours.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteEmailDialog = false
+                        onRequestAccountDeletion()
+                    },
+                    enabled = !state.deleting,
+                ) {
+                    Text(if (state.deleting) "Sending..." else "Send confirmation email", color = ErrorText)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteEmailDialog = false },
                     enabled = !state.deleting,
                 ) {
                     Text("Cancel")

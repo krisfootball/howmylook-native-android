@@ -43,7 +43,11 @@ fun toFriendlyAccountDeletionError(message: String?): String {
     val lower = message?.lowercase().orEmpty()
     return when {
         lower.contains("function") && (lower.contains("not found") || lower.contains("404")) ->
-            "Account deletion is not set up on the server yet. Deploy the delete-account Supabase edge function first."
+            "Account deletion is not set up on the server yet. Deploy the account deletion Supabase edge functions first."
+        lower.contains("resend") || lower.contains("email is not configured") ->
+            "Account deletion email is not configured on the server yet. Add RESEND_API_KEY in Supabase."
+        lower.contains("confirmation email") || lower.contains("email confirmation") ->
+            message ?: "Open the confirmation link in your email to permanently delete your account."
         lower.contains("verify your session") || lower.contains("signed in") ->
             "You need to be signed in before deleting your account."
         lower.contains("network") || lower.contains("timeout") || lower.contains("host") ->

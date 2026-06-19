@@ -408,22 +408,23 @@ class AppViewModel : ViewModel() {
         authFormState = authFormState.copy(password = "", message = "", error = null, loading = false)
     }
 
-    fun deleteAccount(onSuccess: () -> Unit = {}) {
+    fun requestAccountDeletion() {
         if (currentUserId == null) return
 
         viewModelScope.launch {
             editProfileFormState = editProfileFormState.copy(deleting = true, error = null, message = "")
-            accountDeletionRepository.deleteAccount(supabaseConfig)
-                .onSuccess {
-                    runCatching { authRepository.signOut(supabaseConfig) }
-                    clearSignedInState()
-                    bootstrapSession()
-                    onSuccess()
+            accountDeletionRepository.requestAccountDeletion(supabaseConfig)
+                .onSuccess { message ->
+                    editProfileFormState = editProfileFormState.copy(
+                        deleting = false,
+                        message = message,
+                        error = null,
+                    )
                 }
                 .onFailure { error ->
                     editProfileFormState = editProfileFormState.copy(
                         deleting = false,
-                        error = error.message ?: "Unable to delete account.",
+                        error = error.message ?: "Unable to send account deletion email.",
                     )
                 }
         }

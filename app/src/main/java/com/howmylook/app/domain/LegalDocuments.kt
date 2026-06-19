@@ -189,7 +189,7 @@ object LegalDocuments {
                 paragraphs = listOf(
                     "You may request account deletion, access to your data, or another privacy-related request by contacting HowMyLook support. For safety, we may need to verify that the request came from the account owner before taking action.",
                     "We may retain certain information where necessary for legal compliance, fraud prevention, dispute resolution, enforcement, or legitimate operational record-keeping.",
-                    "You can also delete your account from Edit profile in this app.",
+                    "You can also request account deletion from Edit profile in this app. We email you a confirmation link, and your account is only deleted after you open that link.",
                 ),
             ),
             LegalSection(
@@ -290,7 +290,7 @@ object LegalDocuments {
                 heading = "Account deletion and data requests",
                 paragraphs = listOf(
                     "If you want your account deleted or want to make a privacy-related request, contact support from the email address linked to your account and include enough detail for us to verify the request and help you safely.",
-                    "You can also delete your account from Edit profile in this app.",
+                    "You can also request account deletion from Edit profile in this app. We email you a confirmation link, and your account is only deleted after you open that link.",
                 ),
             ),
         ),
