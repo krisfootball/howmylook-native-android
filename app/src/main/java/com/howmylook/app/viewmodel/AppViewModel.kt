@@ -78,6 +78,7 @@ class AppViewModel : ViewModel() {
     private val searchRepository = SearchRepository()
     private val uploadRepository = UploadRepository()
     private val androidPushRepository = AndroidPushRepository()
+    private val postNotificationRepository = PostNotificationRepository()
     private val adminModerationRepository = AdminModerationRepository()
     private val supabaseConfig = SupabaseConfig.fromBuildConfig()
 
