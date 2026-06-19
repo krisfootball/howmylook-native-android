@@ -1,6 +1,5 @@
 package com.howmylook.app.data.profile
 
-import com.howmylook.app.data.post.onlyNonExpiredPosts
 import com.howmylook.app.data.SupabaseConfig
 import com.howmylook.app.data.SupabaseProvider
 import com.howmylook.app.data.toFriendlyFollowError
@@ -16,9 +15,6 @@ private data class PersonProfileDto(
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("bio") val bio: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
-    @SerialName("total_liked_given") val totalLikedGiven: Int? = null,
-    @SerialName("total_skipped_given") val totalSkippedGiven: Int? = null,
-    @SerialName("total_picked_given") val totalPickedGiven: Int? = null,
 )
 
 @Serializable
@@ -28,18 +24,9 @@ private data class FollowRowDto(
     @SerialName("notifications_enabled") val notificationsEnabled: Boolean? = null,
 )
 
-@Serializable
-private data class PeopleVoteCountRowDto(
-    @SerialName("post_id") val postId: String? = null,
-)
-
-@Serializable
-private data class PeopleVisiblePostIdRowDto(
-    @SerialName("id") val id: String? = null,
-)
-
 class PeopleRepository {
     private val profilePostRepository = ProfilePostRepository()
+    private val profileVoteCountRepository = ProfileVoteCountRepository()
 
     suspend fun loadPersonProfile(
         config: SupabaseConfig,
@@ -49,7 +36,7 @@ class PeopleRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
             val profile = client.from("profiles")
-                .select(columns = Columns.list("id", "username", "display_name", "bio", "avatar_url", "total_liked_given", "total_skipped_given", "total_picked_given")) {
+                .select(columns = Columns.list("id", "username", "display_name", "bio", "avatar_url")) {
                     filter { eq("id", profileId) }
                     limit(1)
                 }
@@ -79,23 +66,8 @@ class PeopleRepository {
                 }
                 .decodeSingleOrNull<FollowRowDto>()
 
-            val yesVoteRows = client.from("votes")
-                .select(columns = Columns.list("post_id")) {
-                    filter {
-                        eq("user_id", profileId)
-                        eq("value", "yes")
-                    }
-                }
-                .decodeList<PeopleVoteCountRowDto>()
-
-            val noVoteRows = client.from("votes")
-                .select(columns = Columns.list("post_id")) {
-                    filter {
-                        eq("user_id", profileId)
-                        eq("value", "no")
-                    }
-                }
-                .decodeList<PeopleVoteCountRowDto>()
+            val voteCounts = profileVoteCountRepository.loadCurrentCounts(config, profileId)
+                .getOrElse { ProfileVoteCounts() }
 
             val posts = profilePostRepository.load(
                 config = config,
@@ -103,25 +75,6 @@ class PeopleRepository {
                 includePendingOwnPosts = false,
                 viewerUserId = viewerUserId,
             ).getOrElse { emptyList() }
-            val votedPostIds = (yesVoteRows.mapNotNull { it.postId } + noVoteRows.mapNotNull { it.postId }).distinct()
-            val visibleVotedPostIds = if (votedPostIds.isEmpty()) {
-                emptySet()
-            } else {
-                client.from("posts")
-                    .select(columns = Columns.list("id")) {
-                        filter {
-                            isIn("id", votedPostIds)
-                            eq("is_active", true)
-                            eq("moderation_status", "approved")
-                            onlyNonExpiredPosts()
-                        }
-                    }
-                    .decodeList<PeopleVisiblePostIdRowDto>()
-                    .mapNotNull { it.id }
-                    .toSet()
-            }
-            val fallbackLikedCount = yesVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
-            val fallbackSkippedCount = noVoteRows.count { row -> row.postId != null && visibleVotedPostIds.contains(row.postId) }
 
             ProfileUiState(
                 loading = false,
@@ -132,9 +85,9 @@ class PeopleRepository {
                 avatarUrl = profile.avatarUrl,
                 followers = followers.size,
                 following = following.size,
-                likedGiven = profile.totalLikedGiven ?: fallbackLikedCount,
-                skippedGiven = profile.totalSkippedGiven ?: fallbackSkippedCount,
-                pickedGiven = profile.totalPickedGiven ?: 0,
+                likedGiven = voteCounts.liked,
+                skippedGiven = voteCounts.skipped,
+                pickedGiven = voteCounts.picked,
                 posts = posts,
                 isOwnProfile = viewerUserId == profileId,
                 isFollowing = viewerFollow != null,
@@ -153,7 +106,7 @@ class PeopleRepository {
         return runCatching<Unit> {
             val client = SupabaseProvider.create(config)
             if (viewerUserId == profileId) {
-                error("You can’t follow your own profile.")
+                error("You can't follow your own profile.")
             }
             if (shouldFollow) {
                 client.from("follows").insert(
