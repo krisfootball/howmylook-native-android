@@ -14,6 +14,7 @@ private data class ActivityOwnPostDto(
 
 @Serializable
 private data class ActivityProfileDto(
+    @SerialName("id") val id: String,
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("username") val username: String? = null,
 )
@@ -84,14 +85,20 @@ class ActivityRepository {
                     .decodeList<ActivityVoteRowDto>()
             }
 
-            val followItems = followRows.mapIndexed { index, row ->
-                val profile = client.from("profiles")
-                    .select(columns = Columns.list("display_name", "username")) {
-                        filter { eq("id", row.followerId) }
-                        limit(1)
+            val profileIds = (followRows.map { it.followerId } + voteRows.map { it.userId }).distinct()
+            val profileMap = if (profileIds.isEmpty()) {
+                emptyMap()
+            } else {
+                client.from("profiles")
+                    .select(columns = Columns.list("id", "display_name", "username")) {
+                        filter { isIn("id", profileIds) }
                     }
-                    .decodeSingleOrNull<ActivityProfileDto>()
+                    .decodeList<ActivityProfileDto>()
+                    .associateBy { it.id }
+            }
 
+            val followItems = followRows.mapIndexed { index, row ->
+                val profile = profileMap[row.followerId]
                 val name = profile?.displayName ?: profile?.username ?: "Someone"
                 ActivityItem(
                     id = "follow-${row.followerId}-$index",
@@ -103,13 +110,7 @@ class ActivityRepository {
             }
 
             val voteItems = voteRows.mapIndexed { index, row ->
-                val profile = client.from("profiles")
-                    .select(columns = Columns.list("display_name", "username")) {
-                        filter { eq("id", row.userId) }
-                        limit(1)
-                    }
-                    .decodeSingleOrNull<ActivityProfileDto>()
-
+                val profile = profileMap[row.userId]
                 val name = profile?.displayName ?: profile?.username ?: "Someone"
                 ActivityItem(
                     id = "vote-${row.postId}-${row.createdAt}-$index",

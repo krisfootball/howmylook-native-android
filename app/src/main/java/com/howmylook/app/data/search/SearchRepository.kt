@@ -9,13 +9,13 @@ import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+private const val SEARCH_LOOKS_LIMIT = 60
+
 @Serializable
 private data class SearchProfileDto(
     @SerialName("id") val id: String,
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("username") val username: String? = null,
-    @SerialName("bio") val bio: String? = null,
-    @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
 @Serializable
@@ -31,12 +31,6 @@ private data class SearchLookDto(
     @SerialName("no_count") val noCount: Int = 0,
     @SerialName("compare_left_pick_count") val compareLeftPickCount: Int = 0,
     @SerialName("compare_right_pick_count") val compareRightPickCount: Int = 0,
-    @SerialName("created_at") val createdAt: String? = null,
-)
-
-@Serializable
-private data class SearchFollowDto(
-    @SerialName("following_id") val followingId: String,
 )
 
 class SearchRepository {
@@ -44,40 +38,29 @@ class SearchRepository {
         return runCatching {
             val client = SupabaseProvider.create(config)
 
-            val profiles = client.from("profiles")
-                .select(columns = Columns.list("id", "display_name", "username", "bio", "avatar_url")) {
-                    if (viewerUserId != null) {
-                        filter { neq("id", viewerUserId) }
-                    }
-                    limit(200)
-                }
-                .decodeList<SearchProfileDto>()
-
-            val followingIds = if (viewerUserId == null) {
-                emptySet()
-            } else {
-                client.from("follows")
-                    .select(columns = Columns.list("following_id")) {
-                        filter { eq("follower_id", viewerUserId) }
-                    }
-                    .decodeList<SearchFollowDto>()
-                    .map { it.followingId }
-                    .toSet()
-            }
-
             val looks = client.from("posts")
-                .select(columns = Columns.list("id", "user_id", "caption", "image_url", "post_kind", "compare_left_image_url", "compare_right_image_url", "yes_count", "no_count", "compare_left_pick_count", "compare_right_pick_count", "created_at")) {
+                .select(columns = Columns.list("id", "user_id", "caption", "image_url", "post_kind", "compare_left_image_url", "compare_right_image_url", "yes_count", "no_count", "compare_left_pick_count", "compare_right_pick_count")) {
                     filter {
                         eq("is_active", true)
                         eq("moderation_status", "approved")
                         onlyNonExpiredPosts()
                     }
                     order("created_at", Order.DESCENDING)
-                    limit(200)
+                    limit(SEARCH_LOOKS_LIMIT)
                 }
                 .decodeList<SearchLookDto>()
 
-            val profileMap = profiles.associateBy { it.id }
+            val authorIds = looks.map { it.userId }.distinct()
+            val profileMap = if (authorIds.isEmpty()) {
+                emptyMap()
+            } else {
+                client.from("profiles")
+                    .select(columns = Columns.list("id", "display_name", "username")) {
+                        filter { isIn("id", authorIds) }
+                    }
+                    .decodeList<SearchProfileDto>()
+                    .associateBy { it.id }
+            }
 
             SearchUiState(
                 loading = false,

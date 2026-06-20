@@ -1334,8 +1334,8 @@ fun ProfileScreen(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     if (!state.avatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = state.avatarUrl,
+                        AvatarPostImage(
+                            imageUrl = state.avatarUrl,
                             contentDescription = state.displayName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -1525,8 +1525,8 @@ private fun CompareSplitImages(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier) {
-        AsyncImage(
-            model = leftImageUrl,
+        GridPostImage(
+            imageUrl = leftImageUrl,
             contentDescription = leftContentDescription,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -1539,8 +1539,8 @@ private fun CompareSplitImages(
                 .fillMaxHeight()
                 .background(Color.White.copy(alpha = 0.9f)),
         )
-        AsyncImage(
-            model = rightImageUrl,
+        GridPostImage(
+            imageUrl = rightImageUrl,
             contentDescription = rightContentDescription,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -1579,8 +1579,8 @@ private fun LookGridTile(
                 )
             }
             !post.imageUrl.isNullOrBlank() -> {
-                AsyncImage(
-                    model = post.imageUrl,
+                GridPostImage(
+                    imageUrl = post.imageUrl,
                     contentDescription = post.occasion,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -2230,8 +2230,8 @@ fun FollowListScreen(state: FollowListUiState, onBack: () -> Unit, onOpenPerson:
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (!person.avatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = person.avatarUrl,
+                        AvatarPostImage(
+                            imageUrl = person.avatarUrl,
                             contentDescription = person.displayName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier

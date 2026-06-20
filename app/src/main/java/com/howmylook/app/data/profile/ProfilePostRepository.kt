@@ -34,6 +34,10 @@ private data class ProfilePostDto(
 )
 
 class ProfilePostRepository {
+    companion object {
+        private const val PROFILE_POSTS_LIMIT = 60
+    }
+
     suspend fun load(
         config: SupabaseConfig,
         profileId: String,
@@ -54,6 +58,7 @@ class ProfilePostRepository {
                     }
                     order("keep_forever", Order.DESCENDING)
                     order("created_at", Order.DESCENDING)
+                    limit(PROFILE_POSTS_LIMIT)
                 }
                 .decodeList<ProfilePostDto>()
 
