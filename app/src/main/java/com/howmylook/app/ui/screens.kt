@@ -66,6 +66,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.howmylook.app.ui.AvatarPostImage
+import com.howmylook.app.ui.GridPostImage
 import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.admin.AdminUiState
 import com.howmylook.app.data.auth.AuthFormState
