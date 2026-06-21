@@ -641,7 +641,12 @@ class AppViewModel : ViewModel() {
         selectedPersonProfileId = profileId
         val userId = currentUserId ?: return
         viewModelScope.launch {
-            profileUiState = profileUiState.copy(loading = true, error = null)
+            profileUiState = profileUiState.copy(
+                loading = true,
+                error = null,
+                isOwnProfile = false,
+                profileId = profileId,
+            )
             peopleRepository.loadPersonProfile(supabaseConfig, userId, profileId)
                 .onSuccess { state ->
                     profileUiState = state
@@ -649,6 +654,8 @@ class AppViewModel : ViewModel() {
                 .onFailure { error ->
                     profileUiState = profileUiState.copy(
                         loading = false,
+                        isOwnProfile = false,
+                        profileId = profileId,
                         error = error.message ?: "Unable to load profile.",
                     )
                 }

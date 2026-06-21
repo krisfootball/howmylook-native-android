@@ -517,6 +517,8 @@ fun HomeScreen(
     onVoteYes: () -> Unit,
     onVoteNo: () -> Unit,
 ) {
+    var expandedCompareImageUrl by remember { mutableStateOf<String?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -563,14 +565,17 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxSize()
-                        .clickable(enabled = !homeUiState.isLoading) { onVoteNo() },
+                        .fillMaxSize(),
                 ) {
                     AsyncImage(
                         model = card.compareLeftImageUrl,
                         contentDescription = "Left compare look",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !homeUiState.isLoading) {
+                                expandedCompareImageUrl = card.compareLeftImageUrl
+                            },
                     )
                     if (homeUiState.compareSelection == "left") {
                         Box(
@@ -579,6 +584,14 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
+                    ComparePickButton(
+                        selected = homeUiState.compareSelection == "left",
+                        enabled = !homeUiState.isLoading,
+                        onClick = onVoteNo,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 20.dp),
+                    )
                 }
                 Box(
                     modifier = Modifier
@@ -589,14 +602,17 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxSize()
-                        .clickable(enabled = !homeUiState.isLoading) { onVoteYes() },
+                        .fillMaxSize(),
                 ) {
                     AsyncImage(
                         model = card.compareRightImageUrl,
                         contentDescription = "Right compare look",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !homeUiState.isLoading) {
+                                expandedCompareImageUrl = card.compareRightImageUrl
+                            },
                     )
                     if (homeUiState.compareSelection == "right") {
                         Box(
@@ -605,6 +621,14 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
+                    ComparePickButton(
+                        selected = homeUiState.compareSelection == "right",
+                        enabled = !homeUiState.isLoading,
+                        onClick = onVoteYes,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 20.dp),
+                    )
                 }
             }
         } else if (!card.imageUrl.isNullOrBlank()) {
@@ -678,30 +702,10 @@ fun HomeScreen(
                 }
                 if (card.postKind == "compare") {
                     Text(
-                        "Tap a side or use the buttons below to pick your favorite.",
+                        "Tap ✓ to pick a side. Tap a photo to view it full screen.",
                         color = Color.White.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            ComparePickButton(
-                                selected = homeUiState.compareSelection == "left",
-                                enabled = !homeUiState.isLoading,
-                                onClick = onVoteNo,
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            ComparePickButton(
-                                selected = homeUiState.compareSelection == "right",
-                                enabled = !homeUiState.isLoading,
-                                onClick = onVoteYes,
-                            )
-                        }
-                    }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
@@ -721,12 +725,24 @@ fun HomeScreen(
             }
         }
     }
+
+    expandedCompareImageUrl?.let { imageUrl ->
+        FullScreenImageViewer(
+            imageUrl = imageUrl,
+            onDismiss = { expandedCompareImageUrl = null },
+        )
+    }
 }
 
 @Composable
-private fun ComparePickButton(selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun ComparePickButton(
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .size(58.dp)
             .clickable(enabled = enabled, onClick = onClick),
         shape = CircleShape,
@@ -1598,7 +1614,7 @@ private fun LookGridTile(
             }
         }
 
-        if (showKeepPin && post.keepForever) {
+        if (showKeepPin && isOwnProfile && post.keepForever) {
             Text(
                 "📌",
                 modifier = Modifier
