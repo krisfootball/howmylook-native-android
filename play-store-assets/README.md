@@ -3,8 +3,6 @@
 | File | Use |
 |------|-----|
 | `ic_launcher_512.png` | Upload as the **App icon** in Google Play Console (512×512) |
-| `ic_launcher_foreground_source.png` | Transparent polaroid artwork (no background square) |
+| `ic_launcher_foreground_source.png` | Transparent polaroid artwork only (no background) |
 
-Icon background is dark pink `#8F3260`, baked into every PNG. Polaroids are scaled smaller so the background is visible around them on round home-screen icons.
-
-Launcher PNGs live under `app/src/main/res/mipmap-*`.
+Adaptive icon uses one soft pink background (`#FFF6FB`) behind transparent foreground polaroids. There is no second square background color baked into the foreground layer.
