@@ -1,3 +1,2 @@
-# Gradle JDK for Android Studio sync (#GRADLE_LOCAL_JAVA_HOME).
-# Update this path if Android Studio is installed elsewhere.
-java.home=C\:\\Program Files\\Android\\Android Studio\\jbr
+# Copy to gradle/config.properties if Android Studio reports invalid Gradle JDK.
+java.home=C:/Program Files/Android/Android Studio/jbr
