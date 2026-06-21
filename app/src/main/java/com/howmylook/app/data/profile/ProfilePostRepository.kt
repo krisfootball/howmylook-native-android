@@ -35,7 +35,7 @@ private data class ProfilePostDto(
 
 class ProfilePostRepository {
     companion object {
-        private const val PROFILE_POSTS_LIMIT = 60
+        private const val PROFILE_POSTS_LIMIT = 60L
     }
 
     suspend fun load(

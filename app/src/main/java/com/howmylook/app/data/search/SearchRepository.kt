@@ -9,7 +9,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-private const val SEARCH_LOOKS_LIMIT = 60
+private const val SEARCH_LOOKS_LIMIT = 60L
 
 @Serializable
 private data class SearchProfileDto(
