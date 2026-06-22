@@ -584,6 +584,14 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
+                    ComparePickButton(
+                        selected = homeUiState.compareSelection == "left",
+                        enabled = !homeUiState.isLoading,
+                        onClick = onVoteNo,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 148.dp),
+                    )
                 }
                 Box(
                     modifier = Modifier
@@ -613,6 +621,14 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
+                    ComparePickButton(
+                        selected = homeUiState.compareSelection == "right",
+                        enabled = !homeUiState.isLoading,
+                        onClick = onVoteYes,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 148.dp),
+                    )
                 }
             }
         } else if (!card.imageUrl.isNullOrBlank()) {
@@ -690,26 +706,6 @@ fun HomeScreen(
                         color = Color.White.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            ComparePickButton(
-                                selected = homeUiState.compareSelection == "left",
-                                enabled = !homeUiState.isLoading,
-                                onClick = onVoteNo,
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            ComparePickButton(
-                                selected = homeUiState.compareSelection == "right",
-                                enabled = !homeUiState.isLoading,
-                                onClick = onVoteYes,
-                            )
-                        }
-                    }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
@@ -750,8 +746,8 @@ private fun ComparePickButton(
             .size(58.dp)
             .clickable(enabled = enabled, onClick = onClick),
         shape = CircleShape,
-        color = if (selected) Color(0xFF22C55E) else Color.White.copy(alpha = 0.18f),
-        shadowElevation = if (selected) 2.dp else 0.dp,
+        color = if (selected) Color(0xFF22C55E) else Color.Black.copy(alpha = 0.62f),
+        shadowElevation = if (selected) 4.dp else 2.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
