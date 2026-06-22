@@ -1,5 +1,6 @@
 package com.howmylook.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -105,7 +106,7 @@ private fun ExploreLookCard.isComparePost(): Boolean {
 
 private fun comparePickPercents(leftCount: Int, rightCount: Int): Pair<Int, Int> {
     val total = leftCount + rightCount
-    if (total == 0) return 50 to 50
+    if (total == 0) return 0 to 0
     val leftPct = ((leftCount * 100.0) / total).toInt()
     return leftPct to (100 - leftPct)
 }
@@ -584,14 +585,6 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
-                    ComparePickButton(
-                        selected = homeUiState.compareSelection == "left",
-                        enabled = !homeUiState.isLoading,
-                        onClick = onVoteNo,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 148.dp),
-                    )
                 }
                 Box(
                     modifier = Modifier
@@ -621,14 +614,6 @@ fun HomeScreen(
                                 .background(Color(0x8038A169)),
                         )
                     }
-                    ComparePickButton(
-                        selected = homeUiState.compareSelection == "right",
-                        enabled = !homeUiState.isLoading,
-                        onClick = onVoteYes,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 148.dp),
-                    )
                 }
             }
         } else if (!card.imageUrl.isNullOrBlank()) {
@@ -706,6 +691,26 @@ fun HomeScreen(
                         color = Color.White.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            ComparePickButton(
+                                selected = homeUiState.compareSelection == "left",
+                                enabled = !homeUiState.isLoading,
+                                onClick = onVoteNo,
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            ComparePickButton(
+                                selected = homeUiState.compareSelection == "right",
+                                enabled = !homeUiState.isLoading,
+                                onClick = onVoteYes,
+                            )
+                        }
+                    }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
@@ -1501,7 +1506,7 @@ fun ProfileScreen(
                                 rowIndex = rowIndex,
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
-                                showKeepPin = state.isOwnProfile,
+                                showKeepPin = true,
                                 isOwnProfile = state.isOwnProfile,
                                 onClick = { onOpenPost(post.id) },
                             )
@@ -1614,13 +1619,13 @@ private fun LookGridTile(
             }
         }
 
-        if (showKeepPin && isOwnProfile && post.keepForever) {
+        if (showKeepPin && post.keepForever) {
             Text(
                 "📌",
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 6.dp, end = 6.dp),
-                color = Color.White,
+                color = AccentPink,
                 style = MaterialTheme.typography.labelMedium,
             )
         }
@@ -2129,6 +2134,8 @@ private fun FullScreenImageViewer(
     showPickedBadge: Boolean = false,
     onDismiss: () -> Unit,
 ) {
+    BackHandler(onBack = onDismiss)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
