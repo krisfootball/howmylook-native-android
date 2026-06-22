@@ -1,4 +1,5 @@
-.gradle/
+.gradle/*
+!.gradle/config.properties
 local.properties
 build/
 app/build/

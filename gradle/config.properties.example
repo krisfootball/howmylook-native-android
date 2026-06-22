@@ -1,2 +1,3 @@
-# Copy to gradle/config.properties if Android Studio reports invalid Gradle JDK.
+# Android Studio reads this from .gradle/config.properties (not gradle/).
+# Copy to .gradle/config.properties if sync fails with invalid Gradle JDK.
 java.home=C:/Program Files/Android/Android Studio/jbr
