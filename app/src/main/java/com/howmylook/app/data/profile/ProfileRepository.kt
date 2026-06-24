@@ -50,7 +50,7 @@ class ProfileRepository {
                 config = config,
                 profileId = userId,
                 includePendingOwnPosts = true,
-                viewerUserId = userId,
+                viewerUserId = null,
             ).getOrElse { emptyList() }
 
             ProfileUiState(

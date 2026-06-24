@@ -89,7 +89,6 @@ import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.LegalDocument
 import com.howmylook.app.domain.LegalDocumentType
-import com.howmylook.app.domain.normalizeCompareSide
 import com.howmylook.app.domain.resolveCompareVoteSide
 
 private val PinkSurface = Color(0xFFFFF5FA)
@@ -111,37 +110,12 @@ private fun comparePickPercents(leftCount: Int, rightCount: Int): Pair<Int, Int>
     return leftPct to (100 - leftPct)
 }
 
-private fun comparePickBadgeSide(
-    selectedCompareSide: String?,
-    compareLeftPickCount: Int,
-    compareRightPickCount: Int,
-): String? {
-    if (selectedCompareSide == "left" || selectedCompareSide == "right") {
-        return selectedCompareSide
-    }
-    normalizeCompareSide(selectedCompareSide)?.let { return it }
-    return when {
-        compareLeftPickCount > compareRightPickCount && compareLeftPickCount > 0 -> "left"
-        compareRightPickCount > compareLeftPickCount && compareRightPickCount > 0 -> "right"
-        else -> null
-    }
-}
-
 private fun viewerCompareSide(selectedCompareSide: String?): String? {
     return resolveCompareVoteSide(selectedCompareSide, "compare")
 }
 
 private fun ExploreLookCard.viewerCompareSide(): String? {
     return viewerCompareSide(selectedCompareSide)
-}
-
-private fun ExploreLookCard.comparePickBadgeSide(): String? {
-    return comparePickBadgeSide(selectedCompareSide, compareLeftPickCount, compareRightPickCount)
-}
-
-private fun ExploreLookCard.profileGridPickBadgeSide(isOwnProfile: Boolean): String? {
-    viewerCompareSide()?.let { return it }
-    return if (isOwnProfile) comparePickBadgeSide() else null
 }
 
 @Composable
@@ -1507,7 +1481,7 @@ fun ProfileScreen(
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
                                 showKeepPin = true,
-                                isOwnProfile = state.isOwnProfile,
+                                showViewerPickBadge = !state.isOwnProfile,
                                 onClick = { onOpenPost(post.id) },
                             )
                         }
@@ -1582,7 +1556,6 @@ private fun LookGridTile(
     showKeepPin: Boolean = false,
     showViewerPickBadge: Boolean = true,
     showLikedSkippedSummary: Boolean = true,
-    isOwnProfile: Boolean = false,
     onClick: () -> Unit,
 ) {
     Box(
@@ -1632,11 +1605,7 @@ private fun LookGridTile(
 
         if (post.isComparePost() && showViewerPickBadge) {
             CompareViewerPickOverlay(
-                viewerSide = if (isOwnProfile) {
-                    post.profileGridPickBadgeSide(isOwnProfile = true)
-                } else {
-                    post.viewerCompareSide()
-                },
+                viewerSide = post.viewerCompareSide(),
                 modifier = Modifier.fillMaxSize(),
             )
         }

@@ -66,7 +66,7 @@ class ProfilePostRepository {
             val selectedSideByPostId = if (viewerUserId == null || comparePostIds.isEmpty()) {
                 emptyMap()
             } else {
-                client.from("votes")
+                val selectedSideByPostId = client.from("votes")
                     .select(columns = Columns.list("post_id", "value")) {
                         filter {
                             eq("user_id", viewerUserId)
@@ -80,6 +80,29 @@ class ProfilePostRepository {
                         row.postId to side
                     }
                     .toMap()
+                    .toMutableMap()
+
+                val unresolvedPostIds = comparePostIds.filter { selectedSideByPostId[it] == null }
+                if (unresolvedPostIds.isNotEmpty()) {
+                    client.from("votes")
+                        .select(columns = Columns.list("post_id", "value")) {
+                            filter {
+                                eq("user_id", viewerUserId)
+                                isIn("post_id", unresolvedPostIds)
+                                isIn("value", listOf("left", "right", "yes", "no"))
+                            }
+                        }
+                        .decodeList<ProfilePostVoteRowDto>()
+                        .forEach { row ->
+                            if (selectedSideByPostId[row.postId] == null) {
+                                resolveCompareVoteSide(row.value, "compare")?.let { side ->
+                                    selectedSideByPostId[row.postId] = side
+                                }
+                            }
+                        }
+                }
+
+                selectedSideByPostId
             }
 
             rows.map {
