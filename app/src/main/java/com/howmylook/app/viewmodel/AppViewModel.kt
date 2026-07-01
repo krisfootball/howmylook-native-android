@@ -17,6 +17,7 @@ import com.howmylook.app.data.admin.AdminUiState
 import com.howmylook.app.data.activity.ActivityRepository
 import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.auth.AuthBootstrapRepository
+import com.howmylook.app.data.auth.PasswordResetRepository
 import com.howmylook.app.data.auth.AuthFormState
 import com.howmylook.app.data.auth.AuthMode
 import com.howmylook.app.data.auth.AuthRepository
@@ -55,6 +56,7 @@ import com.howmylook.app.data.upload.UploadUiState
 import com.howmylook.app.domain.AppConfig
 import com.howmylook.app.domain.AppRoute
 import com.howmylook.app.domain.AppStep
+import com.howmylook.app.domain.resolveCompareVoteSide
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
@@ -63,6 +65,7 @@ private const val MAX_POST_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
 class AppViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val authBootstrapRepository = AuthBootstrapRepository()
+    private val passwordResetRepository = PasswordResetRepository()
     private val feedRepository = FeedRepository()
     private val activityRepository = ActivityRepository()
     private val profileRepository = ProfileRepository()
@@ -326,7 +329,7 @@ class AppViewModel : ViewModel() {
 
         viewModelScope.launch {
             authFormState = authFormState.copy(loading = true, error = null, message = "")
-            authRepository.resetPasswordForEmail(supabaseConfig, email)
+            passwordResetRepository.requestPasswordReset(supabaseConfig, email)
                 .onSuccess { message ->
                     authFormState = authFormState.copy(loading = false, message = message, error = null)
                 }
@@ -1260,7 +1263,8 @@ class AppViewModel : ViewModel() {
                     applyVoteUnlockProgress(result, value)
                     removePostFromRatingQueue(postId)
                     val pickedSide = if (postKind == "compare") {
-                        if (value == "left") "left" else "right"
+                        resolveCompareVoteSide(value, "compare")
+                            ?: if (value == "left") "left" else "right"
                     } else {
                         postDetailUiState.selectedCompareSide
                     }

@@ -57,6 +57,20 @@ fun toFriendlyAccountDeletionError(message: String?): String {
     }
 }
 
+fun toFriendlyPasswordResetError(message: String?): String {
+    val lower = message?.lowercase().orEmpty()
+    return when {
+        lower.contains("function") && (lower.contains("not found") || lower.contains("404")) ->
+            "Password reset is not set up on the server yet. Deploy the request-password-reset Supabase edge function first."
+        lower.contains("resend") || lower.contains("email is not configured") ->
+            "Password reset email is not configured on the server yet. Add RESEND_API_KEY in Supabase."
+        lower.contains("network") || lower.contains("timeout") || lower.contains("host") ->
+            "Network issue while requesting password reset. Try again."
+        lower.isBlank() -> "Unable to send password reset email right now."
+        else -> message!!
+    }
+}
+
 fun toFriendlyReportError(message: String?): String {
     val lower = message?.lowercase().orEmpty()
     return when {

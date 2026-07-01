@@ -7,6 +7,7 @@ import com.howmylook.app.data.search.ExploreLookCard
 import com.howmylook.app.domain.resolveCompareVoteSide
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,6 +15,7 @@ import kotlinx.serialization.Serializable
 private data class VoteRowDto(
     @SerialName("post_id") val postId: String,
     @SerialName("value") val value: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable
@@ -28,6 +30,7 @@ private data class VoteHistoryPostDto(
     @SerialName("no_count") val noCount: Int = 0,
     @SerialName("compare_left_pick_count") val compareLeftPickCount: Int = 0,
     @SerialName("compare_right_pick_count") val compareRightPickCount: Int = 0,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 class VoteHistoryRepository {
@@ -36,7 +39,7 @@ class VoteHistoryRepository {
             val client = SupabaseProvider.create(config)
             val isPicked = value == "picked"
             val voteRows = client.from("votes")
-                .select(columns = Columns.list("post_id", "value")) {
+                .select(columns = Columns.list("post_id", "value", "created_at")) {
                     filter {
                         eq("user_id", userId)
                         if (isPicked) {
@@ -46,10 +49,11 @@ class VoteHistoryRepository {
                             eq("vote_kind", "single")
                         }
                     }
+                    order("created_at", Order.DESCENDING)
                 }
                 .decodeList<VoteRowDto>()
 
-            val postIds = voteRows.map { it.postId }
+            val postIds = voteRows.map { it.postId }.distinct()
             val selectedSideByPostId = if (isPicked) {
                 val resolvedSides = voteRows.associate { row ->
                     row.postId to resolveCompareVoteSide(row.value, "compare")
@@ -92,7 +96,7 @@ class VoteHistoryRepository {
             }
 
             val posts = client.from("posts")
-                .select(columns = Columns.list("id", "caption", "image_url", "compare_left_image_url", "compare_right_image_url", "post_kind", "yes_count", "no_count", "compare_left_pick_count", "compare_right_pick_count")) {
+                .select(columns = Columns.list("id", "caption", "image_url", "compare_left_image_url", "compare_right_image_url", "post_kind", "yes_count", "no_count", "compare_left_pick_count", "compare_right_pick_count", "created_at")) {
                     filter {
                         isIn("id", postIds)
                         eq("is_active", true)

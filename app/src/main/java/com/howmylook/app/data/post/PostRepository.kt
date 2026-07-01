@@ -80,15 +80,39 @@ class PostRepository {
                 .decodeSingleOrNull<PostAuthorDto>()
 
             val viewerVote = if (viewerUserId != null) {
-                client.from("votes")
-                    .select(columns = Columns.list("value")) {
-                        filter {
-                            eq("post_id", post.id)
-                            eq("user_id", viewerUserId)
+                if (post.postKind == "compare") {
+                    client.from("votes")
+                        .select(columns = Columns.list("value")) {
+                            filter {
+                                eq("post_id", post.id)
+                                eq("user_id", viewerUserId)
+                                eq("vote_kind", "compare")
+                            }
+                            limit(1)
                         }
-                        limit(1)
-                    }
-                    .decodeSingleOrNull<ViewerVoteDto>()
+                        .decodeSingleOrNull<ViewerVoteDto>()
+                        ?: client.from("votes")
+                            .select(columns = Columns.list("value")) {
+                                filter {
+                                    eq("post_id", post.id)
+                                    eq("user_id", viewerUserId)
+                                    isIn("value", listOf("left", "right", "yes", "no"))
+                                }
+                                limit(1)
+                            }
+                            .decodeSingleOrNull<ViewerVoteDto>()
+                } else {
+                    client.from("votes")
+                        .select(columns = Columns.list("value")) {
+                            filter {
+                                eq("post_id", post.id)
+                                eq("user_id", viewerUserId)
+                                eq("vote_kind", "single")
+                            }
+                            limit(1)
+                        }
+                        .decodeSingleOrNull<ViewerVoteDto>()
+                }
             } else {
                 null
             }

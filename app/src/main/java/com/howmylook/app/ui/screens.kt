@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +57,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -536,57 +538,59 @@ fun HomeScreen(
         }
 
         if (card.postKind == "compare" && !card.compareLeftImageUrl.isNullOrBlank() && !card.compareRightImageUrl.isNullOrBlank()) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize(),
-                ) {
-                    AsyncImage(
-                        model = card.compareLeftImageUrl,
-                        contentDescription = "Left compare look",
-                        contentScale = ContentScale.Crop,
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !homeUiState.isLoading) {
-                                expandedCompareImageUrl = card.compareLeftImageUrl
-                            },
-                    )
-                    if (homeUiState.compareSelection == "left") {
-                        Box(
+                            .weight(1f)
+                            .fillMaxSize(),
+                    ) {
+                        AsyncImage(
+                            model = card.compareLeftImageUrl,
+                            contentDescription = "Left compare look",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0x8038A169)),
+                                .clickable(enabled = !homeUiState.isLoading) {
+                                    expandedCompareImageUrl = card.compareLeftImageUrl
+                                },
                         )
+                        if (homeUiState.compareSelection == "left") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0x8038A169)),
+                            )
+                        }
                     }
-                }
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(Color.White.copy(alpha = 0.9f)),
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize(),
-                ) {
-                    AsyncImage(
-                        model = card.compareRightImageUrl,
-                        contentDescription = "Right compare look",
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !homeUiState.isLoading) {
-                                expandedCompareImageUrl = card.compareRightImageUrl
-                            },
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(Color.White.copy(alpha = 0.9f)),
                     )
-                    if (homeUiState.compareSelection == "right") {
-                        Box(
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize(),
+                    ) {
+                        AsyncImage(
+                            model = card.compareRightImageUrl,
+                            contentDescription = "Right compare look",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0x8038A169)),
+                                .clickable(enabled = !homeUiState.isLoading) {
+                                    expandedCompareImageUrl = card.compareRightImageUrl
+                                },
                         )
+                        if (homeUiState.compareSelection == "right") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0x8038A169)),
+                            )
+                        }
                     }
                 }
             }
@@ -1521,29 +1525,31 @@ private fun CompareSplitImages(
     rightContentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier) {
-        GridPostImage(
-            imageUrl = leftImageUrl,
-            contentDescription = leftContentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .fillMaxHeight()
-                .background(Color.White.copy(alpha = 0.9f)),
-        )
-        GridPostImage(
-            imageUrl = rightImageUrl,
-            contentDescription = rightContentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(modifier = modifier) {
+            GridPostImage(
+                imageUrl = leftImageUrl,
+                contentDescription = leftContentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(Color.White.copy(alpha = 0.9f)),
+            )
+            GridPostImage(
+                imageUrl = rightImageUrl,
+                contentDescription = rightContentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+        }
     }
 }
 
@@ -1691,15 +1697,29 @@ private fun CompareViewerPickOverlay(
 ) {
     if (viewerSide == null) return
 
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .align(if (viewerSide == "left") Alignment.TopStart else Alignment.TopEnd)
-                .fillMaxWidth(0.5f)
-                .fillMaxHeight(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            PickedCheckBadge(modifier = Modifier.padding(top = 8.dp))
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(modifier = modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                if (viewerSide == "left") {
+                    PickedCheckBadge(modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(2.dp))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                if (viewerSide == "right") {
+                    PickedCheckBadge(modifier = Modifier.padding(top = 8.dp))
+                }
+            }
         }
     }
 }
@@ -1794,39 +1814,41 @@ fun PostDetailScreen(
             .background(Color.Black),
     ) {
         if (isCompareDetail) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                CompareDetailPane(
-                    imageUrl = state.compareLeftImageUrl,
-                    contentDescription = "Left compare photo",
-                    highlightedByViewer = viewerPickSide == "left",
-                    showViewerPickBadge = viewerPickSide == "left",
-                    hasViewerPick = viewerPickSide != null,
-                    onImageClick = if (canRate) {
-                        { onVoteNo?.invoke() }
-                    } else {
-                        { expandedImageUrl = state.compareLeftImageUrl }
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(Color.White.copy(alpha = 0.9f)),
-                )
-                CompareDetailPane(
-                    imageUrl = state.compareRightImageUrl,
-                    contentDescription = "Right compare photo",
-                    highlightedByViewer = viewerPickSide == "right",
-                    showViewerPickBadge = viewerPickSide == "right",
-                    hasViewerPick = viewerPickSide != null,
-                    onImageClick = if (canRate) {
-                        { onVoteYes?.invoke() }
-                    } else {
-                        { expandedImageUrl = state.compareRightImageUrl }
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    CompareDetailPane(
+                        imageUrl = state.compareLeftImageUrl,
+                        contentDescription = "Left compare photo",
+                        highlightedByViewer = viewerPickSide == "left",
+                        showViewerPickBadge = viewerPickSide == "left",
+                        hasViewerPick = viewerPickSide != null,
+                        onImageClick = if (canRate) {
+                            { onVoteNo?.invoke() }
+                        } else {
+                            { expandedImageUrl = state.compareLeftImageUrl }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(Color.White.copy(alpha = 0.9f)),
+                    )
+                    CompareDetailPane(
+                        imageUrl = state.compareRightImageUrl,
+                        contentDescription = "Right compare photo",
+                        highlightedByViewer = viewerPickSide == "right",
+                        showViewerPickBadge = viewerPickSide == "right",
+                        hasViewerPick = viewerPickSide != null,
+                        onImageClick = if (canRate) {
+                            { onVoteYes?.invoke() }
+                        } else {
+                            { expandedImageUrl = state.compareRightImageUrl }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         } else if (state.imageUrls.isNotEmpty()) {
             PostDetailImagePager(
@@ -2281,6 +2303,7 @@ fun VoteHistoryScreen(state: VoteHistoryUiState, onBack: () -> Unit, onOpenPost:
                                 rowIndex = rowIndex,
                                 columnIndex = columnIndex,
                                 modifier = Modifier.weight(1f),
+                                showViewerPickBadge = state.title == AppConfig.pickedLabel,
                                 showLikedSkippedSummary = state.title != AppConfig.pickedLabel,
                                 onClick = { onOpenPost(post) },
                             )

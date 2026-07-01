@@ -69,11 +69,11 @@ update public.profiles set is_admin = true where username = 'yourusername';
 |--------|--------|
 | **Report post** | Post detail → Report (not your own post) |
 | **Report profile** | Someone else’s profile → Report profile |
-| **Forgot password** | Sign in screen → Forgot password? |
+| **Forgot password** | Sign in screen → Forgot password? (see `PASSWORD_RESET_SETUP.md`) |
 | **Expiry** | Automatic in all feeds; hard delete via purge function |
 
 Reports are stored in `content_reports` for you to review in Supabase.
 
 ## Password reset note
 
-Supabase sends the reset email. In **Authentication → URL Configuration**, set your site URL and redirect URLs so the email link works on mobile/web.
+Supabase sends the reset email through Resend via the `request-password-reset` edge function. See `PASSWORD_RESET_SETUP.md` for deploy steps, Resend secrets, and redirect URL configuration.

@@ -61,16 +61,6 @@ class AuthRepository {
         }
     }
 
-    suspend fun resetPasswordForEmail(config: SupabaseConfig, email: String): Result<String> {
-        return runCatching {
-            val cleanEmail = email.trim()
-            require(cleanEmail.isNotBlank()) { "Email is required." }
-            val client = SupabaseProvider.create(config)
-            client.auth.resetPasswordForEmail(cleanEmail)
-            "Password reset email sent. Check your inbox."
-        }
-    }
-
     suspend fun loadCurrentProfile(config: SupabaseConfig): Result<ProfileRecord?> {
         return runCatching {
             val client = SupabaseProvider.create(config)
