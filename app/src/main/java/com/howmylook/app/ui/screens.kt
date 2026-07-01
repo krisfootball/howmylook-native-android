@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.HighlightOff
+import androidx.compose.material.icons.outlined.ThumbUpAlt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -1657,26 +1659,65 @@ private fun LookGridTile(
                         )
                     }
                 } else {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "${post.yesCount} ${AppConfig.likedCountLabel}",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = "${post.noCount} ${AppConfig.skippedCountLabel}",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.End,
-                            maxLines = 1,
-                        )
-                    }
+                    GridSinglePostVoteSummary(
+                        yesCount = post.yesCount,
+                        noCount = post.noCount,
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GridSinglePostVoteSummary(
+    yesCount: Int,
+    noCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GridVoteStat(
+            icon = Icons.Outlined.ThumbUpAlt,
+            count = yesCount,
+            contentDescription = AppConfig.likedCountLabel,
+        )
+        GridVoteStat(
+            icon = Icons.Outlined.HighlightOff,
+            count = noCount,
+            contentDescription = AppConfig.skippedCountLabel,
+            alignEnd = true,
+        )
+    }
+}
+
+@Composable
+private fun GridVoteStat(
+    icon: ImageVector,
+    count: Int,
+    contentDescription: String,
+    alignEnd: Boolean = false,
+) {
+    Row(
+        horizontalArrangement = if (alignEnd) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(12.dp),
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = count.toString(),
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+        )
     }
 }
 
