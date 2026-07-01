@@ -11,9 +11,10 @@ fun normalizeCompareSide(value: String?): String? {
 fun resolveCompareVoteSide(value: String?, voteKind: String? = null): String? {
     normalizeCompareSide(value)?.let { return it }
     if (voteKind == null || voteKind == "compare") {
+        // cast_decision_vote stores left picks as "yes" and right picks as "no"
         return when (value?.trim()?.lowercase()) {
-            "yes" -> "right"
-            "no" -> "left"
+            "yes" -> "left"
+            "no" -> "right"
             else -> null
         }
     }

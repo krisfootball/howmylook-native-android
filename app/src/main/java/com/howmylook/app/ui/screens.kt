@@ -122,6 +122,23 @@ private fun ExploreLookCard.viewerCompareSide(): String? {
 }
 
 @Composable
+private fun CompareLtrRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalAlignment: Alignment.Vertical = Alignment.Top,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            modifier = modifier,
+            horizontalArrangement = horizontalArrangement,
+            verticalAlignment = verticalAlignment,
+            content = content,
+        )
+    }
+}
+
+@Composable
 private fun appTextFieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color(0xFF0F172A),
     unfocusedTextColor = Color(0xFF0F172A),
@@ -539,8 +556,7 @@ fun HomeScreen(
         }
 
         if (card.postKind == "compare" && !card.compareLeftImageUrl.isNullOrBlank() && !card.compareRightImageUrl.isNullOrBlank()) {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(modifier = Modifier.fillMaxSize()) {
+            CompareLtrRow(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -593,7 +609,6 @@ fun HomeScreen(
                             )
                         }
                     }
-                }
             }
         } else if (!card.imageUrl.isNullOrBlank()) {
             AsyncImage(
@@ -670,7 +685,7 @@ fun HomeScreen(
                         color = Color.White.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Row(
+                    CompareLtrRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1526,31 +1541,29 @@ private fun CompareSplitImages(
     rightContentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Row(modifier = modifier) {
-            GridPostImage(
-                imageUrl = leftImageUrl,
-                contentDescription = leftContentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-            )
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .fillMaxHeight()
-                    .background(Color.White.copy(alpha = 0.9f)),
-            )
-            GridPostImage(
-                imageUrl = rightImageUrl,
-                contentDescription = rightContentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-            )
-        }
+    CompareLtrRow(modifier = modifier) {
+        GridPostImage(
+            imageUrl = leftImageUrl,
+            contentDescription = leftContentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(Color.White.copy(alpha = 0.9f)),
+        )
+        GridPostImage(
+            imageUrl = rightImageUrl,
+            contentDescription = rightContentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
     }
 }
 
@@ -1627,7 +1640,7 @@ private fun LookGridTile(
             ) {
                 if (post.isComparePost()) {
                     val (leftPct, rightPct) = comparePickPercents(post.compareLeftPickCount, post.compareRightPickCount)
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                    CompareLtrRow(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             "$leftPct%",
                             modifier = Modifier.weight(1f),
@@ -1699,7 +1712,7 @@ private fun CompareViewerPickOverlay(
     if (viewerSide == null) return
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Row(modifier = modifier.fillMaxSize()) {
+        CompareLtrRow(modifier = modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1815,41 +1828,39 @@ fun PostDetailScreen(
             .background(Color.Black),
     ) {
         if (isCompareDetail) {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    CompareDetailPane(
-                        imageUrl = state.compareLeftImageUrl,
-                        contentDescription = "Left compare photo",
-                        highlightedByViewer = viewerPickSide == "left",
-                        showViewerPickBadge = viewerPickSide == "left",
-                        hasViewerPick = viewerPickSide != null,
-                        onImageClick = if (canRate) {
-                            { onVoteNo?.invoke() }
-                        } else {
-                            { expandedImageUrl = state.compareLeftImageUrl }
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .fillMaxHeight()
-                            .background(Color.White.copy(alpha = 0.9f)),
-                    )
-                    CompareDetailPane(
-                        imageUrl = state.compareRightImageUrl,
-                        contentDescription = "Right compare photo",
-                        highlightedByViewer = viewerPickSide == "right",
-                        showViewerPickBadge = viewerPickSide == "right",
-                        hasViewerPick = viewerPickSide != null,
-                        onImageClick = if (canRate) {
-                            { onVoteYes?.invoke() }
-                        } else {
-                            { expandedImageUrl = state.compareRightImageUrl }
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+            CompareLtrRow(modifier = Modifier.fillMaxSize()) {
+                CompareDetailPane(
+                    imageUrl = state.compareLeftImageUrl,
+                    contentDescription = "Left compare photo",
+                    highlightedByViewer = viewerPickSide == "left",
+                    showViewerPickBadge = viewerPickSide == "left",
+                    hasViewerPick = viewerPickSide != null,
+                    onImageClick = if (canRate) {
+                        { onVoteNo?.invoke() }
+                    } else {
+                        { expandedImageUrl = state.compareLeftImageUrl }
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(Color.White.copy(alpha = 0.9f)),
+                )
+                CompareDetailPane(
+                    imageUrl = state.compareRightImageUrl,
+                    contentDescription = "Right compare photo",
+                    highlightedByViewer = viewerPickSide == "right",
+                    showViewerPickBadge = viewerPickSide == "right",
+                    hasViewerPick = viewerPickSide != null,
+                    onImageClick = if (canRate) {
+                        { onVoteYes?.invoke() }
+                    } else {
+                        { expandedImageUrl = state.compareRightImageUrl }
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
         } else if (state.imageUrls.isNotEmpty()) {
             PostDetailImagePager(
@@ -2017,7 +2028,7 @@ fun PostDetailScreen(
                 Text(state.occasion, color = Color.White, style = MaterialTheme.typography.titleLarge)
                 if (state.postKind == "compare") {
                     val (leftPct, rightPct) = comparePickPercents(state.compareLeftPickCount, state.compareRightPickCount)
-                    Row(
+                    CompareLtrRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
@@ -2046,7 +2057,7 @@ fun PostDetailScreen(
                             color = Color.White.copy(alpha = 0.78f),
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        Row(
+                        CompareLtrRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
