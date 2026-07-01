@@ -72,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.howmylook.app.ui.AvatarPostImage
 import com.howmylook.app.ui.GridPostImage
+import com.howmylook.app.ui.ZoomableAsyncImage
 import com.howmylook.app.data.activity.ActivityUiState
 import com.howmylook.app.data.admin.AdminUiState
 import com.howmylook.app.data.auth.AuthFormState
@@ -2143,14 +2144,13 @@ private fun FullScreenImageViewer(
         modifier = Modifier
             .fillMaxSize()
             .zIndex(3f)
-            .background(Color.Black)
-            .clickable(onClick = onDismiss),
+            .background(Color.Black),
     ) {
-        AsyncImage(
-            model = imageUrl,
+        ZoomableAsyncImage(
+            imageUrl = imageUrl,
             contentDescription = "Full photo",
-            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
+            onClick = onDismiss,
         )
         if (showPickedBadge) {
             PickedCheckBadge(
